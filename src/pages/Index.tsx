@@ -1,18 +1,29 @@
-
 import { useState } from "react";
-import { Send, Image, MessageCircle, Heart, User, Plus } from "lucide-react";
+import { Send, Image, MessageCircle, Heart, User, Plus, Mic, Clock, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import Profile from "@/components/Profile";
+import Comments from "@/components/Comments";
+import Share from "@/components/Share";
+import VoiceMessage from "@/components/VoiceMessage";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("feed");
   const [newMessage, setNewMessage] = useState("");
   const [selectedChat, setSelectedChat] = useState(null);
+  const [currentView, setCurrentView] = useState("main");
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [showComments, setShowComments] = useState<number | null>(null);
+  const [showShare, setShowShare] = useState<number | null>(null);
+  const [showVoiceMessage, setShowVoiceMessage] = useState(false);
+  const [likedPosts, setLikedPosts] = useState<number[]>([]);
+  const { toast } = useToast();
 
-  // Mock data
+  // Mock data with enhanced features
   const posts = [
     {
       id: 1,
@@ -21,7 +32,10 @@ const Index = () => {
       image: "https://images.unsplash.com/photo-1721322800607-8c38375eef04?w=400&h=400&fit=crop",
       caption: "Beautiful sunset from my balcony 🌅",
       likes: 124,
-      time: "2h ago"
+      time: "2h ago",
+      mood: "🌅 Feeling grateful",
+      isDisappearing: false,
+      location: "San Francisco, CA"
     },
     {
       id: 2,
@@ -30,7 +44,10 @@ const Index = () => {
       image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400&h=400&fit=crop",
       caption: "Late night coding session 💻",
       likes: 89,
-      time: "4h ago"
+      time: "4h ago",
+      mood: "💻 In the zone",
+      isDisappearing: true,
+      location: "New York, NY"
     },
     {
       id: 3,
@@ -39,10 +56,14 @@ const Index = () => {
       image: "https://images.unsplash.com/photo-1582562124811-c09040d0a901?w=400&h=400&fit=crop",
       caption: "My fluffy friend being adorable as always 🐱",
       likes: 256,
-      time: "6h ago"
+      time: "6h ago",
+      mood: "😻 Cat mom life",
+      isDisappearing: false,
+      location: "Los Angeles, CA"
     }
   ];
 
+  // Mock data
   const chats = [
     {
       id: 1,
@@ -80,12 +101,52 @@ const Index = () => {
     { id: 4, text: "Building a messaging app actually 😄", sent: true, time: "10:35 AM" }
   ];
 
+  const toggleLike = (postId: number) => {
+    setLikedPosts(prev => 
+      prev.includes(postId) 
+        ? prev.filter(id => id !== postId)
+        : [...prev, postId]
+    );
+    
+    toast({
+      title: likedPosts.includes(postId) ? "Unliked!" : "Liked!",
+      description: likedPosts.includes(postId) ? "Removed from favorites" : "Added to favorites",
+    });
+  };
+
   const sendMessage = () => {
     if (newMessage.trim()) {
       console.log("Sending message:", newMessage);
       setNewMessage("");
+      toast({
+        title: "Message sent!",
+        description: "Your message has been delivered",
+      });
     }
   };
+
+  const openProfile = (username: string) => {
+    setSelectedUserId(username);
+    setCurrentView("profile");
+  };
+
+  const sendVoiceMessage = (audioBlob: Blob) => {
+    console.log("Sending voice message:", audioBlob);
+    setShowVoiceMessage(false);
+    toast({
+      title: "Voice message sent!",
+      description: "Your voice message has been delivered",
+    });
+  };
+
+  if (currentView === "profile") {
+    return (
+      <Profile 
+        userId={selectedUserId} 
+        onBack={() => setCurrentView("main")} 
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
@@ -150,13 +211,26 @@ const Index = () => {
                 <CardContent className="p-0">
                   {/* Post Header */}
                   <div className="p-4 flex items-center gap-3">
-                    <Avatar>
+                    <Avatar className="cursor-pointer" onClick={() => openProfile(post.user)}>
                       <AvatarImage src={post.avatar} />
                       <AvatarFallback>{post.user[0].toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{post.user}</p>
-                      <p className="text-sm text-gray-500">{post.time}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-gray-900 cursor-pointer" onClick={() => openProfile(post.user)}>
+                          {post.user}
+                        </p>
+                        {post.isDisappearing && (
+                          <Badge className="bg-orange-100 text-orange-700 border-orange-200">
+                            <Clock className="w-3 h-3 mr-1" />
+                            24h
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500">{post.location} • {post.time}</p>
+                      <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs mt-1">
+                        {post.mood}
+                      </Badge>
                     </div>
                   </div>
 
@@ -167,26 +241,56 @@ const Index = () => {
                       alt="Post" 
                       className="w-full h-80 object-cover"
                     />
+                    {post.isDisappearing && (
+                      <div className="absolute top-2 right-2">
+                        <Badge className="bg-orange-500 text-white">
+                          <Zap className="w-3 h-3 mr-1" />
+                          Disappearing
+                        </Badge>
+                      </div>
+                    )}
                   </div>
 
                   {/* Post Actions */}
                   <div className="p-4">
                     <div className="flex items-center gap-4 mb-2">
-                      <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600 hover:bg-red-50">
-                        <Heart className="w-5 h-5 mr-1" />
-                        {post.likes}
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className={`${
+                          likedPosts.includes(post.id) 
+                            ? 'text-red-500 hover:text-red-600 hover:bg-red-50' 
+                            : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
+                        }`}
+                        onClick={() => toggleLike(post.id)}
+                      >
+                        <Heart className={`w-5 h-5 mr-1 ${likedPosts.includes(post.id) ? 'fill-current' : ''}`} />
+                        {post.likes + (likedPosts.includes(post.id) ? 1 : 0)}
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700 hover:bg-purple-50">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                        onClick={() => setShowComments(post.id)}
+                      >
                         <MessageCircle className="w-5 h-5 mr-1" />
                         Comment
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        onClick={() => setShowShare(post.id)}
+                      >
                         <Send className="w-5 h-5 mr-1" />
                         Share
                       </Button>
                     </div>
                     <p className="text-gray-800">
-                      <span className="font-semibold">{post.user}</span> {post.caption}
+                      <span className="font-semibold cursor-pointer" onClick={() => openProfile(post.user)}>
+                        {post.user}
+                      </span>{" "}
+                      {post.caption}
                     </p>
                   </div>
                 </CardContent>
@@ -289,8 +393,23 @@ const Index = () => {
                       </div>
 
                       {/* Message Input */}
-                      <div className="p-4 border-t border-purple-100">
+                      <div className="p-4 border-t border-purple-100 space-y-3">
+                        {showVoiceMessage && (
+                          <VoiceMessage 
+                            onSend={sendVoiceMessage}
+                            onCancel={() => setShowVoiceMessage(false)}
+                          />
+                        )}
+                        
                         <div className="flex items-center gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-purple-600"
+                            onClick={() => setShowVoiceMessage(!showVoiceMessage)}
+                          >
+                            <Mic className="w-5 h-5" />
+                          </Button>
                           <Button variant="ghost" size="sm" className="text-purple-600">
                             <Image className="w-5 h-5" />
                           </Button>
@@ -325,6 +444,21 @@ const Index = () => {
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      {showComments && (
+        <Comments 
+          postId={showComments} 
+          onClose={() => setShowComments(null)} 
+        />
+      )}
+      
+      {showShare && (
+        <Share 
+          postId={showShare} 
+          onClose={() => setShowShare(null)} 
+        />
+      )}
     </div>
   );
 };
