@@ -1,17 +1,25 @@
-import { useState } from "react";
-import { Send, Image, MessageCircle, Heart, User, Plus, Mic, Clock, Zap } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Send, Image, MessageCircle, Heart, User, Plus, Mic, Clock, Zap, Settings, LogOut, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
+import { supabase } from "@/integrations/supabase/client";
+import { Navigate, Link } from "react-router-dom";
 import Profile from "@/components/Profile";
 import Comments from "@/components/Comments";
 import Share from "@/components/Share";
 import VoiceMessage from "@/components/VoiceMessage";
+import ProfileEditModal from "@/components/ProfileEditModal";
+import FileUpload from "@/components/FileUpload";
 
 const Index = () => {
+  const { user, signOut, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
   const [activeTab, setActiveTab] = useState("feed");
   const [newMessage, setNewMessage] = useState("");
   const [selectedChat, setSelectedChat] = useState(null);
@@ -20,50 +28,64 @@ const Index = () => {
   const [showComments, setShowComments] = useState<number | null>(null);
   const [showShare, setShowShare] = useState<number | null>(null);
   const [showVoiceMessage, setShowVoiceMessage] = useState(false);
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [showFileUpload, setShowFileUpload] = useState(false);
   const [likedPosts, setLikedPosts] = useState<number[]>([]);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [postsLoading, setPostsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Mock data with enhanced features
-  const posts = [
-    {
-      id: 1,
-      user: "sarah_travels",
-      avatar: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=100&h=100&fit=crop&crop=face",
-      image: "https://images.unsplash.com/photo-1721322800607-8c38375eef04?w=400&h=400&fit=crop",
-      caption: "Beautiful sunset from my balcony 🌅",
-      likes: 124,
-      time: "2h ago",
-      mood: "🌅 Feeling grateful",
-      isDisappearing: false,
-      location: "San Francisco, CA"
-    },
-    {
-      id: 2,
-      user: "tech_guru",
-      avatar: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=100&h=100&fit=crop&crop=face",
-      image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400&h=400&fit=crop",
-      caption: "Late night coding session 💻",
-      likes: 89,
-      time: "4h ago",
-      mood: "💻 In the zone",
-      isDisappearing: true,
-      location: "New York, NY"
-    },
-    {
-      id: 3,
-      user: "cat_lover",
-      avatar: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=100&h=100&fit=crop&crop=face",
-      image: "https://images.unsplash.com/photo-1582562124811-c09040d0a901?w=400&h=400&fit=crop",
-      caption: "My fluffy friend being adorable as always 🐱",
-      likes: 256,
-      time: "6h ago",
-      mood: "😻 Cat mom life",
-      isDisappearing: false,
-      location: "Los Angeles, CA"
-    }
-  ];
+  // Redirect to auth if not authenticated
+  if (!authLoading && !user) {
+    return <Navigate to="/auth" replace />;
+  }
 
-  // Mock data
+  // Show loading state
+  if (authLoading || profileLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Fetch posts
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('posts')
+          .select(`
+            *,
+            profiles:user_id (
+              username,
+              display_name,
+              avatar_url
+            )
+          `)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching posts:', error);
+        } else {
+          setPosts(data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+      } finally {
+        setPostsLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchPosts();
+    }
+  }, [user]);
+
+  // Mock data for chats (will be replaced with real data later)
   const chats = [
     {
       id: 1,
@@ -73,32 +95,12 @@ const Index = () => {
       time: "2m ago",
       unread: 2,
       online: true
-    },
-    {
-      id: 2,
-      name: "Maria Silva",
-      avatar: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=100&h=100&fit=crop&crop=face",
-      lastMessage: "Thanks for the recommendation!",
-      time: "1h ago",
-      unread: 0,
-      online: false
-    },
-    {
-      id: 3,
-      name: "David Park",
-      avatar: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=100&h=100&fit=crop&crop=face",
-      lastMessage: "See you tomorrow!",
-      time: "3h ago",
-      unread: 1,
-      online: true
     }
   ];
 
   const messages = [
     { id: 1, text: "Hey! How's it going?", sent: false, time: "10:30 AM" },
-    { id: 2, text: "Pretty good! Just working on some projects", sent: true, time: "10:32 AM" },
-    { id: 3, text: "That sounds interesting! What kind of projects?", sent: false, time: "10:33 AM" },
-    { id: 4, text: "Building a messaging app actually 😄", sent: true, time: "10:35 AM" }
+    { id: 2, text: "Pretty good! Just working on some projects", sent: true, time: "10:32 AM" }
   ];
 
   const toggleLike = (postId: number) => {
@@ -139,6 +141,16 @@ const Index = () => {
     });
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
+  const handleFileUploadComplete = () => {
+    setShowFileUpload(false);
+    // Refresh posts
+    window.location.reload();
+  };
+
   if (currentView === "profile") {
     return (
       <Profile 
@@ -175,11 +187,31 @@ const Index = () => {
               <MessageCircle className="w-4 h-4 mr-1" />
               Chat
             </Button>
+            
+            {/* User Menu */}
+            <div className="flex items-center gap-2 ml-4">
+              <Avatar className="w-8 h-8 cursor-pointer" onClick={() => setShowProfileEdit(true)}>
+                <AvatarImage src={profile?.avatar_url} />
+                <AvatarFallback>{profile?.display_name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+              </Avatar>
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-6">
+        {showFileUpload && (
+          <div className="mb-6">
+            <FileUpload 
+              onUploadComplete={handleFileUploadComplete}
+              onCancel={() => setShowFileUpload(false)}
+            />
+          </div>
+        )}
+
         {activeTab === "feed" && (
           <div className="space-y-6">
             {/* Create Post */}
@@ -187,16 +219,19 @@ const Index = () => {
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <Avatar>
-                    <AvatarImage src="https://images.unsplash.com/photo-1649972904349-6e44c42644a7?w=100&h=100&fit=crop&crop=face" />
-                    <AvatarFallback>YU</AvatarFallback>
+                    <AvatarImage src={profile?.avatar_url} />
+                    <AvatarFallback>{profile?.display_name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                   </Avatar>
                   <Input 
                     placeholder="Share something amazing..." 
                     className="flex-1 border-purple-200 focus:border-purple-400"
+                    onClick={() => setShowFileUpload(true)}
+                    readOnly
                   />
                   <Button 
                     size="sm" 
                     className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                    onClick={() => setShowFileUpload(true)}
                   >
                     <Plus className="w-4 h-4 mr-1" />
                     Post
@@ -206,96 +241,127 @@ const Index = () => {
             </Card>
 
             {/* Posts */}
-            {posts.map((post) => (
-              <Card key={post.id} className="bg-white/70 backdrop-blur-sm border-purple-100 shadow-lg overflow-hidden animate-fade-in">
-                <CardContent className="p-0">
-                  {/* Post Header */}
-                  <div className="p-4 flex items-center gap-3">
-                    <Avatar className="cursor-pointer" onClick={() => openProfile(post.user)}>
-                      <AvatarImage src={post.avatar} />
-                      <AvatarFallback>{post.user[0].toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-gray-900 cursor-pointer" onClick={() => openProfile(post.user)}>
-                          {post.user}
-                        </p>
-                        {post.isDisappearing && (
-                          <Badge className="bg-orange-100 text-orange-700 border-orange-200">
-                            <Clock className="w-3 h-3 mr-1" />
-                            24h
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-500">{post.location} • {post.time}</p>
-                      <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs mt-1">
-                        {post.mood}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Post Image */}
-                  <div className="relative">
-                    <img 
-                      src={post.image} 
-                      alt="Post" 
-                      className="w-full h-80 object-cover"
-                    />
-                    {post.isDisappearing && (
-                      <div className="absolute top-2 right-2">
-                        <Badge className="bg-orange-500 text-white">
-                          <Zap className="w-3 h-3 mr-1" />
-                          Disappearing
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Post Actions */}
-                  <div className="p-4">
-                    <div className="flex items-center gap-4 mb-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className={`${
-                          likedPosts.includes(post.id) 
-                            ? 'text-red-500 hover:text-red-600 hover:bg-red-50' 
-                            : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
-                        }`}
-                        onClick={() => toggleLike(post.id)}
-                      >
-                        <Heart className={`w-5 h-5 mr-1 ${likedPosts.includes(post.id) ? 'fill-current' : ''}`} />
-                        {post.likes + (likedPosts.includes(post.id) ? 1 : 0)}
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                        onClick={() => setShowComments(post.id)}
-                      >
-                        <MessageCircle className="w-5 h-5 mr-1" />
-                        Comment
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                        onClick={() => setShowShare(post.id)}
-                      >
-                        <Send className="w-5 h-5 mr-1" />
-                        Share
-                      </Button>
-                    </div>
-                    <p className="text-gray-800">
-                      <span className="font-semibold cursor-pointer" onClick={() => openProfile(post.user)}>
-                        {post.user}
-                      </span>{" "}
-                      {post.caption}
-                    </p>
+            {postsLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+                <p className="mt-2 text-gray-600">Loading posts...</p>
+              </div>
+            ) : posts.length === 0 ? (
+              <Card className="bg-white/70 backdrop-blur-sm border-purple-100 shadow-lg">
+                <CardContent className="p-8 text-center">
+                  <div className="text-gray-500">
+                    <Image className="w-12 h-12 mx-auto mb-4 text-purple-300" />
+                    <p className="text-lg font-medium mb-2">No posts yet</p>
+                    <p className="text-sm">Be the first to share something amazing!</p>
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            ) : (
+              posts.map((post) => (
+                <Card key={post.id} className="bg-white/70 backdrop-blur-sm border-purple-100 shadow-lg overflow-hidden animate-fade-in">
+                  <CardContent className="p-0">
+                    {/* Post Header */}
+                    <div className="p-4 flex items-center gap-3">
+                      <Avatar className="cursor-pointer" onClick={() => openProfile(post.profiles?.username || '')}>
+                        <AvatarImage src={post.profiles?.avatar_url} />
+                        <AvatarFallback>{(post.profiles?.display_name || 'U')[0].toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-gray-900 cursor-pointer" onClick={() => openProfile(post.profiles?.username || '')}>
+                            {post.profiles?.display_name || post.profiles?.username || 'Unknown User'}
+                          </p>
+                          {post.is_disappearing && (
+                            <Badge className="bg-orange-100 text-orange-700 border-orange-200">
+                              <Clock className="w-3 h-3 mr-1" />
+                              24h
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500">{post.location || 'Unknown location'} • {new Date(post.created_at).toLocaleDateString()}</p>
+                        {post.mood && (
+                          <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs mt-1">
+                            {post.mood}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Post Media */}
+                    {(post.image_url || post.video_url) && (
+                      <div className="relative">
+                        {post.image_url ? (
+                          <img 
+                            src={post.image_url} 
+                            alt="Post" 
+                            className="w-full h-80 object-cover"
+                          />
+                        ) : post.video_url ? (
+                          <video 
+                            src={post.video_url} 
+                            className="w-full h-80 object-cover"
+                            controls
+                          />
+                        ) : null}
+                        {post.is_disappearing && (
+                          <div className="absolute top-2 right-2">
+                            <Badge className="bg-orange-500 text-white">
+                              <Zap className="w-3 h-3 mr-1" />
+                              Disappearing
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Post Actions */}
+                    <div className="p-4">
+                      <div className="flex items-center gap-4 mb-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className={`${
+                            likedPosts.includes(post.id) 
+                              ? 'text-red-500 hover:text-red-600 hover:bg-red-50' 
+                              : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
+                          }`}
+                          onClick={() => toggleLike(post.id)}
+                        >
+                          <Heart className={`w-5 h-5 mr-1 ${likedPosts.includes(post.id) ? 'fill-current' : ''}`} />
+                          {post.likes_count + (likedPosts.includes(post.id) ? 1 : 0)}
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                          onClick={() => setShowComments(post.id)}
+                        >
+                          <MessageCircle className="w-5 h-5 mr-1" />
+                          Comment
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => setShowShare(post.id)}
+                        >
+                          <Send className="w-5 h-5 mr-1" />
+                          Share
+                        </Button>
+                      </div>
+                      {post.caption && (
+                        <p className="text-gray-800">
+                          <span className="font-semibold cursor-pointer" onClick={() => openProfile(post.profiles?.username || '')}>
+                            {post.profiles?.display_name || post.profiles?.username || 'Unknown User'}
+                          </span>{" "}
+                          {post.caption}
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         )}
 
@@ -457,6 +523,14 @@ const Index = () => {
         <Share 
           postId={showShare} 
           onClose={() => setShowShare(null)} 
+        />
+      )}
+
+      {showProfileEdit && (
+        <ProfileEditModal
+          isOpen={showProfileEdit}
+          onClose={() => setShowProfileEdit(false)}
+          profile={profile}
         />
       )}
     </div>

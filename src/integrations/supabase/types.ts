@@ -9,7 +9,182 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      cities: {
+        Row: {
+          country_id: number
+          id: number
+          name: string
+        }
+        Insert: {
+          country_id: number
+          id?: number
+          name: string
+        }
+        Update: {
+          country_id?: number
+          id?: number
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_country"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      countries: {
+        Row: {
+          code: string
+          id: number
+          name: string
+        }
+        Insert: {
+          code: string
+          id?: number
+          name: string
+        }
+        Update: {
+          code?: string
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      feedback: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: number
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: number
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: number
+        }
+        Relationships: []
+      }
+      posts: {
+        Row: {
+          caption: string | null
+          comments_count: number | null
+          created_at: string | null
+          id: string
+          image_url: string | null
+          is_disappearing: boolean | null
+          likes_count: number | null
+          location: string | null
+          mood: string | null
+          updated_at: string | null
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          caption?: string | null
+          comments_count?: number | null
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_disappearing?: boolean | null
+          likes_count?: number | null
+          location?: string | null
+          mood?: string | null
+          updated_at?: string | null
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          caption?: string | null
+          comments_count?: number | null
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_disappearing?: boolean | null
+          likes_count?: number | null
+          location?: string | null
+          mood?: string | null
+          updated_at?: string | null
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          display_name: string | null
+          followers_count: number | null
+          following_count: number | null
+          id: string
+          is_online: boolean | null
+          last_seen: string | null
+          location: string | null
+          mood: string | null
+          posts_count: number | null
+          updated_at: string | null
+          username: string | null
+          website: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          followers_count?: number | null
+          following_count?: number | null
+          id: string
+          is_online?: boolean | null
+          last_seen?: string | null
+          location?: string | null
+          mood?: string | null
+          posts_count?: number | null
+          updated_at?: string | null
+          username?: string | null
+          website?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          followers_count?: number | null
+          following_count?: number | null
+          id?: string
+          is_online?: boolean | null
+          last_seen?: string | null
+          location?: string | null
+          mood?: string | null
+          posts_count?: number | null
+          updated_at?: string | null
+          username?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      t: {
+        Row: {
+          created_at: string
+          id: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
