@@ -125,6 +125,7 @@ export type Database = {
           followers_count: number | null
           following_count: number | null
           id: string
+          interests: string[] | null
           is_online: boolean | null
           last_seen: string | null
           location: string | null
@@ -142,6 +143,7 @@ export type Database = {
           followers_count?: number | null
           following_count?: number | null
           id: string
+          interests?: string[] | null
           is_online?: boolean | null
           last_seen?: string | null
           location?: string | null
@@ -159,6 +161,7 @@ export type Database = {
           followers_count?: number | null
           following_count?: number | null
           id?: string
+          interests?: string[] | null
           is_online?: boolean | null
           last_seen?: string | null
           location?: string | null

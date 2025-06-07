@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Send, Image, MessageCircle, Heart, User, Plus, Mic, Clock, Zap, Settings, LogOut, Edit } from "lucide-react";
+import { Send, Image, MessageCircle, Heart, User, Plus, Mic, Clock, Zap, Settings, LogOut, Edit, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,19 +8,21 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
-import { supabase } from "@/integrations/supabase/client";
-import { Navigate, Link } from "react-router-dom";
+import { usePosts } from "@/hooks/usePosts";
+import { Navigate } from "react-router-dom";
 import Profile from "@/components/Profile";
 import Comments from "@/components/Comments";
 import Share from "@/components/Share";
 import VoiceMessage from "@/components/VoiceMessage";
 import ProfileEditModal from "@/components/ProfileEditModal";
-import FileUpload from "@/components/FileUpload";
+import CreatePost from "@/components/CreatePost";
+import Explore from "@/components/Explore";
 
 const Index = () => {
   // ALL HOOKS MUST BE CALLED AT THE TOP - NO EXCEPTIONS
   const { user, signOut, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
+  const { posts, loading: postsLoading } = usePosts();
   const { toast } = useToast();
   
   const [activeTab, setActiveTab] = useState("feed");
@@ -32,43 +34,8 @@ const Index = () => {
   const [showShare, setShowShare] = useState<number | null>(null);
   const [showVoiceMessage, setShowVoiceMessage] = useState(false);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
-  const [showFileUpload, setShowFileUpload] = useState(false);
+  const [showCreatePost, setShowCreatePost] = useState(false);
   const [likedPosts, setLikedPosts] = useState<number[]>([]);
-  const [posts, setPosts] = useState<any[]>([]);
-  const [postsLoading, setPostsLoading] = useState(true);
-
-  // Fetch posts effect - MUST be declared with all other hooks
-  useEffect(() => {
-    const fetchPosts = async () => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('posts')
-          .select(`
-            *,
-            profiles:user_id (
-              username,
-              display_name,
-              avatar_url
-            )
-          `)
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('Error fetching posts:', error);
-        } else {
-          setPosts(data || []);
-        }
-      } catch (error) {
-        console.error('Error fetching posts:', error);
-      } finally {
-        setPostsLoading(false);
-      }
-    };
-
-    fetchPosts();
-  }, [user]);
 
   // NOW we can do early returns after ALL hooks are declared
   if (!authLoading && !user) {
@@ -104,16 +71,17 @@ const Index = () => {
     { id: 2, text: "Pretty good! Just working on some projects", sent: true, time: "10:32 AM" }
   ];
 
-  const toggleLike = (postId: number) => {
+  const toggleLike = (postId: string) => {
+    const numericId = parseInt(postId);
     setLikedPosts(prev => 
-      prev.includes(postId) 
-        ? prev.filter(id => id !== postId)
-        : [...prev, postId]
+      prev.includes(numericId) 
+        ? prev.filter(id => id !== numericId)
+        : [...prev, numericId]
     );
     
     toast({
-      title: likedPosts.includes(postId) ? "Unliked!" : "Liked!",
-      description: likedPosts.includes(postId) ? "Removed from favorites" : "Added to favorites",
+      title: likedPosts.includes(numericId) ? "Unliked!" : "Liked!",
+      description: likedPosts.includes(numericId) ? "Removed from favorites" : "Added to favorites",
     });
   };
 
@@ -143,12 +111,15 @@ const Index = () => {
   };
 
   const handleSignOut = async () => {
-    await signOut();
-  };
-
-  const handleFileUploadComplete = () => {
-    setShowFileUpload(false);
-    window.location.reload();
+    try {
+      await signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "See you later!"
+      });
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
   };
 
   if (currentView === "profile") {
@@ -179,6 +150,15 @@ const Index = () => {
               Feed
             </Button>
             <Button
+              variant={activeTab === "explore" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab("explore")}
+              className={activeTab === "explore" ? "bg-gradient-to-r from-purple-600 to-pink-600" : ""}
+            >
+              <Compass className="w-4 h-4 mr-1" />
+              Explore
+            </Button>
+            <Button
               variant={activeTab === "chat" ? "default" : "ghost"}
               size="sm"
               onClick={() => setActiveTab("chat")}
@@ -203,12 +183,9 @@ const Index = () => {
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-6">
-        {showFileUpload && (
+        {showCreatePost && (
           <div className="mb-6">
-            <FileUpload 
-              onUploadComplete={handleFileUploadComplete}
-              onCancel={() => setShowFileUpload(false)}
-            />
+            <CreatePost onClose={() => setShowCreatePost(false)} />
           </div>
         )}
 
@@ -225,13 +202,13 @@ const Index = () => {
                   <Input 
                     placeholder="Share something amazing..." 
                     className="flex-1 border-purple-200 focus:border-purple-400"
-                    onClick={() => setShowFileUpload(true)}
+                    onClick={() => setShowCreatePost(true)}
                     readOnly
                   />
                   <Button 
                     size="sm" 
                     className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                    onClick={() => setShowFileUpload(true)}
+                    onClick={() => setShowCreatePost(true)}
                   >
                     <Plus className="w-4 h-4 mr-1" />
                     Post
@@ -321,20 +298,20 @@ const Index = () => {
                           variant="ghost" 
                           size="sm" 
                           className={`${
-                            likedPosts.includes(post.id) 
+                            likedPosts.includes(parseInt(post.id)) 
                               ? 'text-red-500 hover:text-red-600 hover:bg-red-50' 
                               : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
                           }`}
                           onClick={() => toggleLike(post.id)}
                         >
-                          <Heart className={`w-5 h-5 mr-1 ${likedPosts.includes(post.id) ? 'fill-current' : ''}`} />
-                          {post.likes_count + (likedPosts.includes(post.id) ? 1 : 0)}
+                          <Heart className={`w-5 h-5 mr-1 ${likedPosts.includes(parseInt(post.id)) ? 'fill-current' : ''}`} />
+                          {(post.likes_count || 0) + (likedPosts.includes(parseInt(post.id)) ? 1 : 0)}
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="sm" 
                           className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                          onClick={() => setShowComments(post.id)}
+                          onClick={() => setShowComments(parseInt(post.id))}
                         >
                           <MessageCircle className="w-5 h-5 mr-1" />
                           Comment
@@ -343,7 +320,7 @@ const Index = () => {
                           variant="ghost" 
                           size="sm" 
                           className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          onClick={() => setShowShare(post.id)}
+                          onClick={() => setShowShare(parseInt(post.id))}
                         >
                           <Send className="w-5 h-5 mr-1" />
                           Share
@@ -364,6 +341,8 @@ const Index = () => {
             )}
           </div>
         )}
+
+        {activeTab === "explore" && <Explore />}
 
         {activeTab === "chat" && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[600px]">
