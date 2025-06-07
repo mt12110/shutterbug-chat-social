@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Send, Image, MessageCircle, Heart, User, Plus, Mic, Clock, Zap, Settings, LogOut, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,11 +18,11 @@ import ProfileEditModal from "@/components/ProfileEditModal";
 import FileUpload from "@/components/FileUpload";
 
 const Index = () => {
+  // ALL HOOKS MUST BE CALLED AT THE TOP - NO EXCEPTIONS
   const { user, signOut, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   const { toast } = useToast();
   
-  // All hooks called unconditionally at the top
   const [activeTab, setActiveTab] = useState("feed");
   const [newMessage, setNewMessage] = useState("");
   const [selectedChat, setSelectedChat] = useState(null);
@@ -38,23 +37,7 @@ const Index = () => {
   const [posts, setPosts] = useState<any[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
 
-  // Early returns after all hooks are declared
-  if (!authLoading && !user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  if (authLoading || profileLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Fetch posts effect
+  // Fetch posts effect - MUST be declared with all other hooks
   useEffect(() => {
     const fetchPosts = async () => {
       if (!user) return;
@@ -86,6 +69,22 @@ const Index = () => {
 
     fetchPosts();
   }, [user]);
+
+  // NOW we can do early returns after ALL hooks are declared
+  if (!authLoading && !user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (authLoading || profileLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Mock data for chats
   const chats = [
