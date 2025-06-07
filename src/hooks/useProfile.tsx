@@ -23,13 +23,16 @@ export interface Profile {
 }
 
 export const useProfile = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId?: string) => {
-    if (!user && !userId) return;
+    if (!user && !userId) {
+      setLoading(false);
+      return;
+    }
     
     try {
       const { data, error } = await supabase
@@ -138,14 +141,18 @@ export const useProfile = () => {
     }
   };
 
+  // Fixed useEffect with proper dependency handling
   useEffect(() => {
+    // Only run when auth is not loading and we have a definitive user state
+    if (authLoading) return;
+    
     if (user) {
       fetchProfile();
     } else {
       setProfile(null);
       setLoading(false);
     }
-  }, [user]);
+  }, [user, authLoading]); // Added authLoading as dependency
 
   return {
     profile,
