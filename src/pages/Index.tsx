@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Send, Image, MessageCircle, Heart, User, Plus, Mic, Clock, Zap, Settings, LogOut, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,9 @@ import FileUpload from "@/components/FileUpload";
 const Index = () => {
   const { user, signOut, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
+  const { toast } = useToast();
+  
+  // All hooks called unconditionally at the top
   const [activeTab, setActiveTab] = useState("feed");
   const [newMessage, setNewMessage] = useState("");
   const [selectedChat, setSelectedChat] = useState(null);
@@ -33,14 +37,12 @@ const Index = () => {
   const [likedPosts, setLikedPosts] = useState<number[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
-  const { toast } = useToast();
 
-  // Redirect to auth if not authenticated
+  // Early returns after all hooks are declared
   if (!authLoading && !user) {
     return <Navigate to="/auth" replace />;
   }
 
-  // Show loading state
   if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center">
@@ -52,9 +54,11 @@ const Index = () => {
     );
   }
 
-  // Fetch posts
+  // Fetch posts effect
   useEffect(() => {
     const fetchPosts = async () => {
+      if (!user) return;
+      
       try {
         const { data, error } = await supabase
           .from('posts')
@@ -80,12 +84,10 @@ const Index = () => {
       }
     };
 
-    if (user) {
-      fetchPosts();
-    }
+    fetchPosts();
   }, [user]);
 
-  // Mock data for chats (will be replaced with real data later)
+  // Mock data for chats
   const chats = [
     {
       id: 1,
@@ -147,7 +149,6 @@ const Index = () => {
 
   const handleFileUploadComplete = () => {
     setShowFileUpload(false);
-    // Refresh posts
     window.location.reload();
   };
 
