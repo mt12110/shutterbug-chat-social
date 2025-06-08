@@ -41,7 +41,7 @@ export const usePosts = () => {
         .from('posts')
         .select(`
           *,
-          profiles:user_id (
+          profiles!posts_user_id_fkey (
             username,
             display_name,
             avatar_url
@@ -87,7 +87,7 @@ export const usePosts = () => {
         })
         .select(`
           *,
-          profiles:user_id (
+          profiles!posts_user_id_fkey (
             username,
             display_name,
             avatar_url

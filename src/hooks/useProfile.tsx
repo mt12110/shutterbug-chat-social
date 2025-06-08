@@ -18,6 +18,7 @@ export interface Profile {
   followers_count?: number;
   following_count?: number;
   posts_count?: number;
+  interests?: string[];
   created_at?: string;
   updated_at?: string;
 }
@@ -141,9 +142,7 @@ export const useProfile = () => {
     }
   };
 
-  // Fixed useEffect with proper dependency handling
   useEffect(() => {
-    // Only run when auth is not loading and we have a definitive user state
     if (authLoading) return;
     
     if (user) {
@@ -152,7 +151,7 @@ export const useProfile = () => {
       setProfile(null);
       setLoading(false);
     }
-  }, [user, authLoading]); // Added authLoading as dependency
+  }, [user, authLoading]);
 
   return {
     profile,

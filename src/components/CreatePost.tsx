@@ -1,17 +1,18 @@
 
 import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { X, MapPin, Smile, Clock, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { X, Upload, Image as ImageIcon, Video, MapPin, Smile } from 'lucide-react';
-import { useProfile } from '@/hooks/useProfile';
-import { usePosts } from '@/hooks/usePosts';
-import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { usePosts } from '@/hooks/usePosts';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import FileUpload from './FileUpload';
 
 interface CreatePostProps {
   onClose: () => void;
@@ -19,65 +20,34 @@ interface CreatePostProps {
 
 const CreatePost = ({ onClose }: CreatePostProps) => {
   const { user } = useAuth();
-  const { profile } = useProfile();
   const { createPost } = usePosts();
   const { toast } = useToast();
+  
   const [caption, setCaption] = useState('');
   const [location, setLocation] = useState('');
   const [mood, setMood] = useState('');
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isDisappearing, setIsDisappearing] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
-
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm'];
-    if (!validTypes.includes(selectedFile.type)) {
-      toast({
-        title: "Invalid file type",
-        description: "Please select an image or video file",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validate file size (10MB max)
-    if (selectedFile.size > 10 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please select a file smaller than 10MB",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setFile(selectedFile);
-    
-    // Create preview URL
-    const url = URL.createObjectURL(selectedFile);
-    setPreviewUrl(url);
-  };
+  const moods = ['😊 Happy', '😎 Cool', '🤔 Thoughtful', '🎉 Excited', '😌 Peaceful', '💪 Motivated'];
 
   const uploadFile = async (file: File): Promise<string | null> => {
     if (!user) return null;
 
     const fileExt = file.name.split('.').pop();
-    const isVideo = file.type.startsWith('video/');
-    const bucket = isVideo ? 'videos' : 'posts';
     const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+    const bucket = file.type.startsWith('video/') ? 'videos' : 'posts';
 
-    const { error: uploadError } = await supabase.storage
+    const { error } = await supabase.storage
       .from(bucket)
       .upload(fileName, file);
 
-    if (uploadError) {
-      console.error('Upload error:', uploadError);
+    if (error) {
+      console.error('Upload error:', error);
       toast({
         title: "Upload failed",
-        description: uploadError.message,
+        description: error.message,
         variant: "destructive"
       });
       return null;
@@ -90,168 +60,150 @@ const CreatePost = ({ onClose }: CreatePostProps) => {
     return publicUrl;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!caption.trim() && !file) {
+  const handleSubmit = async () => {
+    if (!caption.trim() && !selectedFile) {
       toast({
-        title: "Nothing to post",
-        description: "Please add some content or select a file",
+        title: "Please add content",
+        description: "Add a caption or select a file to share",
         variant: "destructive"
       });
       return;
     }
 
-    setIsUploading(true);
+    setUploading(true);
 
     try {
-      let fileUrl = null;
-      if (file) {
-        fileUrl = await uploadFile(file);
-        if (!fileUrl) {
-          setIsUploading(false);
+      let image_url = '';
+      let video_url = '';
+
+      if (selectedFile) {
+        const uploadedUrl = await uploadFile(selectedFile);
+        if (!uploadedUrl) {
+          setUploading(false);
           return;
+        }
+
+        if (selectedFile.type.startsWith('video/')) {
+          video_url = uploadedUrl;
+        } else {
+          image_url = uploadedUrl;
         }
       }
 
-      const postData = {
+      const result = await createPost({
         caption: caption.trim() || undefined,
+        image_url: image_url || undefined,
+        video_url: video_url || undefined,
         location: location.trim() || undefined,
-        mood: mood.trim() || undefined,
-        [file?.type.startsWith('video/') ? 'video_url' : 'image_url']: fileUrl || undefined
-      };
+        mood: mood || undefined,
+        is_disappearing: isDisappearing
+      });
 
-      const result = await createPost(postData);
-      
       if (!result.error) {
         onClose();
       }
-    } catch (error: any) {
+    } catch (error) {
+      console.error('Error creating post:', error);
       toast({
         title: "Error creating post",
-        description: error.message,
+        description: "Something went wrong. Please try again.",
         variant: "destructive"
       });
     } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const removeFile = () => {
-    setFile(null);
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
+      setUploading(false);
     }
   };
 
   return (
-    <Card className="bg-white/70 backdrop-blur-sm border-purple-100 shadow-lg">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Create Post</h3>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="w-4 h-4" />
-          </Button>
+    <Card className="bg-white/90 backdrop-blur-sm border-purple-100 shadow-xl">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-lg font-semibold text-gray-900">Create Post</CardTitle>
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          <X className="w-4 h-4" />
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Textarea
+          placeholder="What's on your mind?"
+          value={caption}
+          onChange={(e) => setCaption(e.target.value)}
+          className="min-h-[100px] border-purple-200 focus:border-purple-400"
+        />
+
+        <FileUpload
+          onFileSelect={setSelectedFile}
+          onRemove={() => setSelectedFile(null)}
+          className="w-full"
+        />
+
+        <div className="flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-gray-400" />
+          <Input
+            placeholder="Add location..."
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            className="border-purple-200 focus:border-purple-400"
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex items-start gap-3">
-            <Avatar>
-              <AvatarImage src={profile?.avatar_url} />
-              <AvatarFallback>{profile?.display_name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <Textarea
-                placeholder="What's on your mind?"
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                rows={3}
-                className="border-none bg-transparent resize-none focus:ring-0 text-lg placeholder:text-gray-400"
-              />
-            </div>
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Smile className="w-4 h-4 text-gray-400" />
+            <span className="text-sm font-medium text-gray-700">Mood</span>
           </div>
-
-          {/* File Preview */}
-          {previewUrl && (
-            <div className="relative">
-              {file?.type.startsWith('video/') ? (
-                <video 
-                  src={previewUrl} 
-                  className="w-full h-64 object-cover rounded-lg"
-                  controls
-                />
-              ) : (
-                <img 
-                  src={previewUrl} 
-                  alt="Preview" 
-                  className="w-full h-64 object-cover rounded-lg"
-                />
-              )}
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                className="absolute top-2 right-2"
-                onClick={removeFile}
+          <div className="flex flex-wrap gap-2">
+            {moods.map((moodOption) => (
+              <Badge
+                key={moodOption}
+                variant={mood === moodOption ? "default" : "outline"}
+                className={`cursor-pointer transition-colors ${
+                  mood === moodOption 
+                    ? "bg-purple-600 text-white" 
+                    : "hover:bg-purple-50"
+                }`}
+                onClick={() => setMood(mood === moodOption ? '' : moodOption)}
               >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
-
-          {/* Additional Fields */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="location" className="text-sm text-gray-600">Location</Label>
-              <Input
-                id="location"
-                placeholder="Add location..."
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="mood" className="text-sm text-gray-600">Mood</Label>
-              <Input
-                id="mood"
-                placeholder="How are you feeling?"
-                value={mood}
-                onChange={(e) => setMood(e.target.value)}
-                className="mt-1"
-              />
-            </div>
+                {moodOption}
+              </Badge>
+            ))}
           </div>
+        </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-            <div className="flex gap-2">
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/*,video/*"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-                <Button type="button" variant="ghost" size="sm" asChild>
-                  <span>
-                    <ImageIcon className="w-5 h-5 mr-1" />
-                    Photo/Video
-                  </span>
-                </Button>
-              </label>
-            </div>
-            
-            <Button
-              type="submit"
-              disabled={isUploading || (!caption.trim() && !file)}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-            >
-              {isUploading ? 'Posting...' : 'Post'}
-            </Button>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-orange-500" />
+            <Label htmlFor="disappearing" className="text-sm font-medium">
+              Disappearing post (24h)
+            </Label>
           </div>
-        </form>
+          <Switch
+            id="disappearing"
+            checked={isDisappearing}
+            onCheckedChange={setIsDisappearing}
+          />
+        </div>
+
+        {isDisappearing && (
+          <div className="flex items-center gap-2 p-2 bg-orange-50 rounded-md">
+            <Zap className="w-4 h-4 text-orange-500" />
+            <span className="text-sm text-orange-700">
+              This post will automatically disappear after 24 hours
+            </span>
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-4">
+          <Button variant="outline" onClick={onClose} className="flex-1">
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit}
+            disabled={uploading}
+            className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+          >
+            {uploading ? 'Posting...' : 'Share Post'}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
