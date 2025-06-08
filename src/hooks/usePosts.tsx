@@ -37,28 +37,41 @@ export const usePosts = () => {
     }
     
     try {
-      const { data, error } = await supabase
+      // First get posts
+      const { data: postsData, error: postsError } = await supabase
         .from('posts')
-        .select(`
-          *,
-          profiles (
-            username,
-            display_name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching posts:', error);
+      if (postsError) {
+        console.error('Error fetching posts:', postsError);
         toast({
           title: "Error loading posts",
-          description: error.message,
+          description: postsError.message,
           variant: "destructive"
         });
-      } else {
-        setPosts(data || []);
+        setLoading(false);
+        return;
       }
+
+      // Then get profiles for all users
+      const userIds = [...new Set(postsData?.map(post => post.user_id) || [])];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+      }
+
+      // Combine posts with profiles
+      const postsWithProfiles = postsData?.map(post => ({
+        ...post,
+        profiles: profilesData?.find(profile => profile.id === post.user_id) || null
+      })) || [];
+
+      setPosts(postsWithProfiles);
     } catch (error: any) {
       console.error('Error fetching posts:', error);
     } finally {
@@ -77,7 +90,7 @@ export const usePosts = () => {
     if (!user) return { error: 'No user found' };
 
     try {
-      const { data, error } = await supabase
+      const { data: newPost, error: postError } = await supabase
         .from('posts')
         .insert({
           ...postData,
@@ -85,31 +98,36 @@ export const usePosts = () => {
           likes_count: 0,
           comments_count: 0
         })
-        .select(`
-          *,
-          profiles (
-            username,
-            display_name,
-            avatar_url
-          )
-        `)
+        .select()
         .single();
 
-      if (error) {
+      if (postError) {
         toast({
           title: "Error creating post",
-          description: error.message,
+          description: postError.message,
           variant: "destructive"
         });
-        return { error };
+        return { error: postError };
       }
 
-      setPosts(prev => [data, ...prev]);
+      // Get the profile for this user
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url')
+        .eq('id', user.id)
+        .single();
+
+      const postWithProfile = {
+        ...newPost,
+        profiles: profileData || null
+      };
+
+      setPosts(prev => [postWithProfile, ...prev]);
       toast({
         title: "Post created",
         description: "Your post has been shared successfully"
       });
-      return { data };
+      return { data: postWithProfile };
     } catch (error: any) {
       toast({
         title: "Error creating post",
