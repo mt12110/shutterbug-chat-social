@@ -37,35 +37,23 @@ export const useFollows = () => {
     try {
       console.log('Fetching follows for user:', user.id);
       
-      // Get followers - use raw SQL query since types aren't synced
+      // Get followers - direct table query
       const { data: followersData, error: followersError } = await supabase
-        .rpc('get_followers', { user_id: user.id })
-        .then(() => ({ data: null, error: { message: 'Function not found' } }))
-        .catch(async () => {
-          // Fallback to direct table query
-          return await supabase
-            .from('follows' as any)
-            .select('*')
-            .eq('following_id', user.id);
-        });
+        .from('follows' as any)
+        .select('*')
+        .eq('following_id', user.id);
 
-      // Get following - use raw SQL query since types aren't synced  
+      // Get following - direct table query  
       const { data: followingData, error: followingError } = await supabase
-        .rpc('get_following', { user_id: user.id })
-        .then(() => ({ data: null, error: { message: 'Function not found' } }))
-        .catch(async () => {
-          // Fallback to direct table query
-          return await supabase
-            .from('follows' as any)
-            .select('*')
-            .eq('follower_id', user.id);
-        });
+        .from('follows' as any)
+        .select('*')
+        .eq('follower_id', user.id);
 
-      if (followersError && !followersError.message.includes('Function not found')) {
+      if (followersError) {
         console.error('Error fetching followers:', followersError);
       }
       
-      if (followingError && !followingError.message.includes('Function not found')) {
+      if (followingError) {
         console.error('Error fetching following:', followingError);
       }
 

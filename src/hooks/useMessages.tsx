@@ -57,7 +57,12 @@ export const useMessages = (otherUserId?: string) => {
       }
 
       const messagesWithProfiles = messagesData?.map((message: any) => ({
-        ...message,
+        id: message.id,
+        sender_id: message.sender_id,
+        receiver_id: message.receiver_id,
+        content: message.content,
+        created_at: message.created_at,
+        read_at: message.read_at,
         sender: profilesData?.find((profile: any) => profile.id === message.sender_id) || null
       })) || [];
 
@@ -101,7 +106,12 @@ export const useMessages = (otherUserId?: string) => {
         .single();
 
       const messageWithProfile = {
-        ...data,
+        id: data.id,
+        sender_id: data.sender_id,
+        receiver_id: data.receiver_id,
+        content: data.content,
+        created_at: data.created_at,
+        read_at: data.read_at,
         sender: profileData || null
       };
 
