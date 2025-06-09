@@ -34,7 +34,7 @@ export const useMessages = (otherUserId?: string) => {
       console.log('Fetching messages between:', user.id, 'and', otherUserId);
       
       const { data: messagesData, error } = await supabase
-        .from('messages' as any)
+        .from('messages')
         .select('*')
         .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`)
         .order('created_at', { ascending: true });
@@ -79,7 +79,7 @@ export const useMessages = (otherUserId?: string) => {
 
     try {
       const { data, error } = await supabase
-        .from('messages' as any)
+        .from('messages')
         .insert({
           sender_id: user.id,
           receiver_id: otherUserId,
@@ -98,17 +98,6 @@ export const useMessages = (otherUserId?: string) => {
         return { error };
       }
 
-      // Type guard to ensure data has the expected structure
-      if (!data || typeof data !== 'object' || !('id' in data)) {
-        console.error('Invalid data structure:', data);
-        toast({
-          title: "Error sending message",
-          description: 'Invalid response from server',
-          variant: "destructive"
-        });
-        return { error: 'Invalid response' };
-      }
-
       // Get sender profile
       const { data: profileData } = await supabase
         .from('profiles')
@@ -117,12 +106,12 @@ export const useMessages = (otherUserId?: string) => {
         .single();
 
       const messageWithProfile = {
-        id: (data as any).id,
-        sender_id: (data as any).sender_id,
-        receiver_id: (data as any).receiver_id,
-        content: (data as any).content,
-        created_at: (data as any).created_at,
-        read_at: (data as any).read_at,
+        id: data.id,
+        sender_id: data.sender_id,
+        receiver_id: data.receiver_id,
+        content: data.content,
+        created_at: data.created_at,
+        read_at: data.read_at,
         sender: profileData || null
       };
 

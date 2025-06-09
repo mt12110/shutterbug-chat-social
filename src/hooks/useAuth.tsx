@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -62,13 +61,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signUp = async (email: string, password: string) => {
     try {
-      const redirectUrl = `${window.location.origin}/`;
-      
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl
+          emailRedirectTo: undefined // Remove email confirmation
         }
       });
 
@@ -80,8 +77,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
       } else {
         toast({
-          title: "Check your email",
-          description: "We've sent you a confirmation link"
+          title: "Account created!",
+          description: "You can now sign in with your credentials"
         });
       }
 

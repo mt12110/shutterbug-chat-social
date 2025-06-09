@@ -19,8 +19,8 @@ const AppLayout = () => {
   const [activeTab, setActiveTab] = useState("feed");
   const [currentView, setCurrentView] = useState("main");
   const [selectedUserId, setSelectedUserId] = useState("");
-  const [showComments, setShowComments] = useState<number | null>(null);
-  const [showShare, setShowShare] = useState<number | null>(null);
+  const [showComments, setShowComments] = useState<string | null>(null);
+  const [showShare, setShowShare] = useState<string | null>(null);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
 
   if (!authLoading && !user) {

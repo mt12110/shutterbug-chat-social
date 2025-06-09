@@ -37,15 +37,15 @@ export const useFollows = () => {
     try {
       console.log('Fetching follows for user:', user.id);
       
-      // Get followers - direct table query
+      // Get followers
       const { data: followersData, error: followersError } = await supabase
-        .from('follows' as any)
+        .from('follows')
         .select('*')
         .eq('following_id', user.id);
 
-      // Get following - direct table query  
+      // Get following  
       const { data: followingData, error: followingError } = await supabase
-        .from('follows' as any)
+        .from('follows')
         .select('*')
         .eq('follower_id', user.id);
 
@@ -95,7 +95,7 @@ export const useFollows = () => {
 
     try {
       const { data, error } = await supabase
-        .from('follows' as any)
+        .from('follows')
         .insert({
           follower_id: user.id,
           following_id: userId
@@ -136,7 +136,7 @@ export const useFollows = () => {
 
     try {
       const { error } = await supabase
-        .from('follows' as any)
+        .from('follows')
         .delete()
         .eq('follower_id', user.id)
         .eq('following_id', userId);
