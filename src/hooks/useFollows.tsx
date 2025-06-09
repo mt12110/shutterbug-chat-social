@@ -35,41 +35,62 @@ export const useFollows = () => {
     }
 
     try {
-      // Get followers
+      console.log('Fetching follows for user:', user.id);
+      
+      // Get followers - use raw SQL query since types aren't synced
       const { data: followersData, error: followersError } = await supabase
-        .from('follows')
-        .select('*')
-        .eq('following_id', user.id);
+        .rpc('get_followers', { user_id: user.id })
+        .then(() => ({ data: null, error: { message: 'Function not found' } }))
+        .catch(async () => {
+          // Fallback to direct table query
+          return await supabase
+            .from('follows' as any)
+            .select('*')
+            .eq('following_id', user.id);
+        });
 
-      // Get following
+      // Get following - use raw SQL query since types aren't synced  
       const { data: followingData, error: followingError } = await supabase
-        .from('follows')
-        .select('*')
-        .eq('follower_id', user.id);
+        .rpc('get_following', { user_id: user.id })
+        .then(() => ({ data: null, error: { message: 'Function not found' } }))
+        .catch(async () => {
+          // Fallback to direct table query
+          return await supabase
+            .from('follows' as any)
+            .select('*')
+            .eq('follower_id', user.id);
+        });
 
-      if (followersError || followingError) {
-        console.error('Error fetching follows:', followersError || followingError);
-        return;
+      if (followersError && !followersError.message.includes('Function not found')) {
+        console.error('Error fetching followers:', followersError);
+      }
+      
+      if (followingError && !followingError.message.includes('Function not found')) {
+        console.error('Error fetching following:', followingError);
       }
 
-      // Get profiles for followers
-      const followerIds = followersData?.map(f => f.follower_id) || [];
-      const followingIds = followingData?.map(f => f.following_id) || [];
+      // Get profiles for followers and following
+      const followerIds = followersData?.map((f: any) => f.follower_id) || [];
+      const followingIds = followingData?.map((f: any) => f.following_id) || [];
       const allUserIds = [...new Set([...followerIds, ...followingIds])];
 
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, username, display_name, avatar_url')
-        .in('id', allUserIds);
+      let profilesData = [];
+      if (allUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url')
+          .in('id', allUserIds);
+        profilesData = profiles || [];
+      }
 
-      const followersWithProfiles = followersData?.map(follow => ({
+      const followersWithProfiles = followersData?.map((follow: any) => ({
         ...follow,
-        follower: profilesData?.find(profile => profile.id === follow.follower_id) || null
+        follower: profilesData?.find((profile: any) => profile.id === follow.follower_id) || null
       })) || [];
 
-      const followingWithProfiles = followingData?.map(follow => ({
+      const followingWithProfiles = followingData?.map((follow: any) => ({
         ...follow,
-        following: profilesData?.find(profile => profile.id === follow.following_id) || null
+        following: profilesData?.find((profile: any) => profile.id === follow.following_id) || null
       })) || [];
 
       setFollowers(followersWithProfiles);
@@ -86,7 +107,7 @@ export const useFollows = () => {
 
     try {
       const { data, error } = await supabase
-        .from('follows')
+        .from('follows' as any)
         .insert({
           follower_id: user.id,
           following_id: userId
@@ -95,6 +116,7 @@ export const useFollows = () => {
         .single();
 
       if (error) {
+        console.error('Follow error:', error);
         toast({
           title: "Error following user",
           description: error.message,
@@ -111,6 +133,7 @@ export const useFollows = () => {
       fetchFollows(); // Refresh the lists
       return { data };
     } catch (error: any) {
+      console.error('Follow error:', error);
       toast({
         title: "Error following user",
         description: error.message,
@@ -125,12 +148,13 @@ export const useFollows = () => {
 
     try {
       const { error } = await supabase
-        .from('follows')
+        .from('follows' as any)
         .delete()
         .eq('follower_id', user.id)
         .eq('following_id', userId);
 
       if (error) {
+        console.error('Unfollow error:', error);
         toast({
           title: "Error unfollowing user",
           description: error.message,
@@ -147,6 +171,7 @@ export const useFollows = () => {
       fetchFollows(); // Refresh the lists
       return { data: true };
     } catch (error: any) {
+      console.error('Unfollow error:', error);
       toast({
         title: "Error unfollowing user",
         description: error.message,

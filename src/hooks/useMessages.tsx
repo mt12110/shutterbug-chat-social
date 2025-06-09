@@ -31,8 +31,10 @@ export const useMessages = (otherUserId?: string) => {
     }
 
     try {
+      console.log('Fetching messages between:', user.id, 'and', otherUserId);
+      
       const { data: messagesData, error } = await supabase
-        .from('messages')
+        .from('messages' as any)
         .select('*')
         .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`)
         .order('created_at', { ascending: true });
@@ -43,15 +45,20 @@ export const useMessages = (otherUserId?: string) => {
       }
 
       // Get profiles for message senders
-      const senderIds = [...new Set(messagesData?.map(msg => msg.sender_id) || [])];
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, username, display_name, avatar_url')
-        .in('id', senderIds);
+      const senderIds = [...new Set(messagesData?.map((msg: any) => msg.sender_id) || [])];
+      let profilesData = [];
+      
+      if (senderIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url')
+          .in('id', senderIds);
+        profilesData = profiles || [];
+      }
 
-      const messagesWithProfiles = messagesData?.map(message => ({
+      const messagesWithProfiles = messagesData?.map((message: any) => ({
         ...message,
-        sender: profilesData?.find(profile => profile.id === message.sender_id) || null
+        sender: profilesData?.find((profile: any) => profile.id === message.sender_id) || null
       })) || [];
 
       setMessages(messagesWithProfiles);
@@ -67,7 +74,7 @@ export const useMessages = (otherUserId?: string) => {
 
     try {
       const { data, error } = await supabase
-        .from('messages')
+        .from('messages' as any)
         .insert({
           sender_id: user.id,
           receiver_id: otherUserId,
@@ -77,6 +84,7 @@ export const useMessages = (otherUserId?: string) => {
         .single();
 
       if (error) {
+        console.error('Send message error:', error);
         toast({
           title: "Error sending message",
           description: error.message,
@@ -100,6 +108,7 @@ export const useMessages = (otherUserId?: string) => {
       setMessages(prev => [...prev, messageWithProfile]);
       return { data: messageWithProfile };
     } catch (error: any) {
+      console.error('Send message error:', error);
       toast({
         title: "Error sending message",
         description: error.message,

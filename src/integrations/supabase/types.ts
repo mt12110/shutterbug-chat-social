@@ -9,68 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      cities: {
-        Row: {
-          country_id: number
-          id: number
-          name: string
-        }
-        Insert: {
-          country_id: number
-          id?: number
-          name: string
-        }
-        Update: {
-          country_id?: number
-          id?: number
-          name?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_country"
-            columns: ["country_id"]
-            isOneToOne: false
-            referencedRelation: "countries"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      countries: {
-        Row: {
-          code: string
-          id: number
-          name: string
-        }
-        Insert: {
-          code: string
-          id?: number
-          name: string
-        }
-        Update: {
-          code?: string
-          id?: number
-          name?: string
-        }
-        Relationships: []
-      }
-      feedback: {
-        Row: {
-          content: string | null
-          created_at: string
-          id: number
-        }
-        Insert: {
-          content?: string | null
-          created_at?: string
-          id?: number
-        }
-        Update: {
-          content?: string | null
-          created_at?: string
-          id?: number
-        }
-        Relationships: []
-      }
       posts: {
         Row: {
           caption: string | null
