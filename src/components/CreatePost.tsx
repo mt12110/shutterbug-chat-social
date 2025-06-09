@@ -1,11 +1,10 @@
 
 import { useState } from 'react';
-import { X, MapPin, Smile, Clock, Zap } from 'lucide-react';
+import { X, MapPin, Clock, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -25,19 +24,16 @@ const CreatePost = ({ onClose }: CreatePostProps) => {
   
   const [caption, setCaption] = useState('');
   const [location, setLocation] = useState('');
-  const [mood, setMood] = useState('');
   const [isDisappearing, setIsDisappearing] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-
-  const moods = ['😊 Happy', '😎 Cool', '🤔 Thoughtful', '🎉 Excited', '😌 Peaceful', '💪 Motivated'];
 
   const uploadFile = async (file: File): Promise<string | null> => {
     if (!user) return null;
 
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-    const bucket = file.type.startsWith('video/') ? 'videos' : 'posts';
+    const bucket = file.type.startsWith('video/') ? 'videos' : 'images';
 
     const { error } = await supabase.storage
       .from(bucket)
@@ -95,7 +91,6 @@ const CreatePost = ({ onClose }: CreatePostProps) => {
         image_url: image_url || undefined,
         video_url: video_url || undefined,
         location: location.trim() || undefined,
-        mood: mood || undefined,
         is_disappearing: isDisappearing
       });
 
@@ -144,29 +139,6 @@ const CreatePost = ({ onClose }: CreatePostProps) => {
             onChange={(e) => setLocation(e.target.value)}
             className="border-purple-200 focus:border-purple-400"
           />
-        </div>
-
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Smile className="w-4 h-4 text-gray-400" />
-            <span className="text-sm font-medium text-gray-700">Mood</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {moods.map((moodOption) => (
-              <Badge
-                key={moodOption}
-                variant={mood === moodOption ? "default" : "outline"}
-                className={`cursor-pointer transition-colors ${
-                  mood === moodOption 
-                    ? "bg-purple-600 text-white" 
-                    : "hover:bg-purple-50"
-                }`}
-                onClick={() => setMood(mood === moodOption ? '' : moodOption)}
-              >
-                {moodOption}
-              </Badge>
-            ))}
-          </div>
         </div>
 
         <div className="flex items-center justify-between">

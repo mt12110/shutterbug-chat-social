@@ -43,6 +43,14 @@ const AppLayout = () => {
     setCurrentView("profile");
   };
 
+  const handleShowComments = (postId: string) => {
+    setShowComments(postId);
+  };
+
+  const handleShowShare = (postId: string) => {
+    setShowShare(postId);
+  };
+
   if (currentView === "profile") {
     return (
       <Profile 
@@ -66,8 +74,8 @@ const AppLayout = () => {
           <FeedTab 
             profile={profile}
             onOpenProfile={openProfile}
-            onShowComments={setShowComments}
-            onShowShare={setShowShare}
+            onShowComments={handleShowComments}
+            onShowShare={handleShowShare}
           />
         )}
 

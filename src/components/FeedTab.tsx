@@ -1,42 +1,76 @@
 
 import { useState } from "react";
-import { Plus, Image, Clock, Zap, Heart, MessageCircle, Send } from "lucide-react";
+import { Plus, Image, Heart, MessageCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { usePosts } from "@/hooks/usePosts";
+import { useLikes } from "@/hooks/useLikes";
 import CreatePost from "./CreatePost";
 import type { Profile } from "@/hooks/useProfile";
 
 interface FeedTabProps {
   profile: Profile | null;
   onOpenProfile: (username: string) => void;
-  onShowComments: (postId: number) => void;
-  onShowShare: (postId: number) => void;
+  onShowComments: (postId: string) => void;
+  onShowShare: (postId: string) => void;
 }
 
 const FeedTab = ({ profile, onOpenProfile, onShowComments, onShowShare }: FeedTabProps) => {
   const { posts, loading: postsLoading } = usePosts();
+  const { likes, toggleLike } = useLikes();
   const { toast } = useToast();
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const [likedPosts, setLikedPosts] = useState<number[]>([]);
 
-  const toggleLike = (postId: string) => {
-    const numericId = parseInt(postId);
-    setLikedPosts(prev => 
-      prev.includes(numericId) 
-        ? prev.filter(id => id !== numericId)
-        : [...prev, numericId]
-    );
-    
-    toast({
-      title: likedPosts.includes(numericId) ? "Unliked!" : "Liked!",
-      description: likedPosts.includes(numericId) ? "Removed from favorites" : "Added to favorites",
+  const isLiked = (postId: string) => {
+    return likes.some(like => like.post_id === postId);
+  };
+
+  const handleLike = async (postId: string) => {
+    const result = await toggleLike(postId);
+    if (!result.error) {
+      toast({
+        title: isLiked(postId) ? "Unliked!" : "Liked!",
+        description: isLiked(postId) ? "Removed from favorites" : "Added to favorites",
+      });
+    }
+  };
+
+  // Filter posts based on user interests for personalized feed
+  const getFilteredPosts = () => {
+    if (!profile?.interests || profile.interests.length === 0) {
+      return posts; // Show all posts if no interests set
+    }
+
+    return posts.sort((a, b) => {
+      let aScore = 0;
+      let bScore = 0;
+
+      // Score posts based on interest matching
+      profile.interests?.forEach(interest => {
+        if (a.caption?.toLowerCase().includes(interest.toLowerCase()) || 
+            a.location?.toLowerCase().includes(interest.toLowerCase())) {
+          aScore += 1;
+        }
+        if (b.caption?.toLowerCase().includes(interest.toLowerCase()) || 
+            b.location?.toLowerCase().includes(interest.toLowerCase())) {
+          bScore += 1;
+        }
+      });
+
+      // Posts with higher interest scores appear first
+      if (aScore !== bScore) {
+        return bScore - aScore;
+      }
+
+      // If scores are equal, sort by creation date (newest first)
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
   };
+
+  const filteredPosts = getFilteredPosts();
 
   return (
     <div className="space-y-6">
@@ -78,7 +112,7 @@ const FeedTab = ({ profile, onOpenProfile, onShowComments, onShowShare }: FeedTa
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
           <p className="mt-2 text-gray-600">Loading posts...</p>
         </div>
-      ) : posts.length === 0 ? (
+      ) : filteredPosts.length === 0 ? (
         <Card className="bg-white/70 backdrop-blur-sm border-purple-100 shadow-lg">
           <CardContent className="p-8 text-center">
             <div className="text-gray-500">
@@ -89,7 +123,7 @@ const FeedTab = ({ profile, onOpenProfile, onShowComments, onShowShare }: FeedTa
           </CardContent>
         </Card>
       ) : (
-        posts.map((post) => (
+        filteredPosts.map((post) => (
           <Card key={post.id} className="bg-white/70 backdrop-blur-sm border-purple-100 shadow-lg overflow-hidden animate-fade-in">
             <CardContent className="p-0">
               {/* Post Header */}
@@ -103,23 +137,12 @@ const FeedTab = ({ profile, onOpenProfile, onShowComments, onShowShare }: FeedTa
                     <p className="font-semibold text-gray-900 cursor-pointer" onClick={() => onOpenProfile(post.profiles?.username || '')}>
                       {post.profiles?.display_name || post.profiles?.username || 'Unknown User'}
                     </p>
-                    {post.is_disappearing && (
-                      <Badge className="bg-orange-100 text-orange-700 border-orange-200">
-                        <Clock className="w-3 h-3 mr-1" />
-                        24h
-                      </Badge>
-                    )}
                   </div>
                   <p className="text-sm text-gray-500">{post.location || 'Unknown location'} • {new Date(post.created_at).toLocaleDateString()}</p>
-                  {post.mood && (
-                    <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs mt-1">
-                      {post.mood}
-                    </Badge>
-                  )}
                 </div>
               </div>
 
-              {/* Post Media - Only show if image or video exists */}
+              {/* Post Media */}
               {(post.image_url || post.video_url) && (
                 <div className="relative">
                   {post.image_url ? (
@@ -135,14 +158,6 @@ const FeedTab = ({ profile, onOpenProfile, onShowComments, onShowShare }: FeedTa
                       controls
                     />
                   ) : null}
-                  {post.is_disappearing && (
-                    <div className="absolute top-2 right-2">
-                      <Badge className="bg-orange-500 text-white">
-                        <Zap className="w-3 h-3 mr-1" />
-                        Disappearing
-                      </Badge>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -153,20 +168,20 @@ const FeedTab = ({ profile, onOpenProfile, onShowComments, onShowShare }: FeedTa
                     variant="ghost" 
                     size="sm" 
                     className={`${
-                      likedPosts.includes(parseInt(post.id)) 
+                      isLiked(post.id) 
                         ? 'text-red-500 hover:text-red-600 hover:bg-red-50' 
                         : 'text-gray-500 hover:text-red-600 hover:bg-red-50'
                     }`}
-                    onClick={() => toggleLike(post.id)}
+                    onClick={() => handleLike(post.id)}
                   >
-                    <Heart className={`w-5 h-5 mr-1 ${likedPosts.includes(parseInt(post.id)) ? 'fill-current' : ''}`} />
-                    {(post.likes_count || 0) + (likedPosts.includes(parseInt(post.id)) ? 1 : 0)}
+                    <Heart className={`w-5 h-5 mr-1 ${isLiked(post.id) ? 'fill-current' : ''}`} />
+                    {post.likes_count || 0}
                   </Button>
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                    onClick={() => onShowComments(parseInt(post.id))}
+                    onClick={() => onShowComments(post.id)}
                   >
                     <MessageCircle className="w-5 h-5 mr-1" />
                     Comment
@@ -175,7 +190,7 @@ const FeedTab = ({ profile, onOpenProfile, onShowComments, onShowShare }: FeedTa
                     variant="ghost" 
                     size="sm" 
                     className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                    onClick={() => onShowShare(parseInt(post.id))}
+                    onClick={() => onShowShare(post.id)}
                   >
                     <Send className="w-5 h-5 mr-1" />
                     Share

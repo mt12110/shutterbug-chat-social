@@ -11,7 +11,6 @@ export interface Post {
   image_url?: string;
   video_url?: string;
   location?: string;
-  mood?: string;
   is_disappearing?: boolean;
   likes_count?: number;
   comments_count?: number;
@@ -84,7 +83,6 @@ export const usePosts = () => {
     image_url?: string;
     video_url?: string;
     location?: string;
-    mood?: string;
     is_disappearing?: boolean;
   }) => {
     if (!user) return { error: 'No user found' };

@@ -19,13 +19,21 @@ const AppHeader = ({ activeTab, setActiveTab, profile, onShowProfileEdit }: AppH
 
   const handleSignOut = async () => {
     try {
-      await signOut();
-      toast({
-        title: "Signed out successfully",
-        description: "See you later!"
-      });
+      const { error } = await signOut();
+      if (error) {
+        toast({
+          title: "Sign out failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
     } catch (error) {
       console.error('Sign out error:', error);
+      toast({
+        title: "Sign out failed",
+        description: "An error occurred while signing out",
+        variant: "destructive"
+      });
     }
   };
 
