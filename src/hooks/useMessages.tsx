@@ -99,7 +99,7 @@ export const useMessages = (otherUserId?: string) => {
       }
 
       // Type guard to ensure data has the expected structure
-      if (data === null || typeof data !== 'object' || !('id' in data)) {
+      if (!data || typeof data !== 'object' || !('id' in data)) {
         console.error('Invalid data structure:', data);
         toast({
           title: "Error sending message",
