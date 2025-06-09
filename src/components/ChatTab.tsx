@@ -1,200 +1,140 @@
 
-import { useState } from "react";
-import { MessageCircle, Send, Image, Mic } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import VoiceMessage from "./VoiceMessage";
+import { useState, useEffect } from 'react';
+import { MessageCircle, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import MessagesList from './MessagesList';
+
+interface Profile {
+  id: string;
+  username?: string;
+  display_name?: string;
+  avatar_url?: string;
+}
 
 const ChatTab = () => {
-  const { toast } = useToast();
-  const [newMessage, setNewMessage] = useState("");
-  const [selectedChat, setSelectedChat] = useState<any>(null);
-  const [showVoiceMessage, setShowVoiceMessage] = useState(false);
+  const { user } = useAuth();
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUserName, setSelectedUserName] = useState<string>('');
 
-  // Mock data for chats
-  const chats = [
-    {
-      id: 1,
-      name: "Alex Chen",
-      avatar: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=100&h=100&fit=crop&crop=face",
-      lastMessage: "Hey! How was your day?",
-      time: "2m ago",
-      unread: 2,
-      online: true
-    }
-  ];
+  const fetchProfiles = async () => {
+    if (!user) return;
 
-  const messages = [
-    { id: 1, text: "Hey! How's it going?", sent: false, time: "10:30 AM" },
-    { id: 2, text: "Pretty good! Just working on some projects", sent: true, time: "10:32 AM" }
-  ];
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url')
+        .neq('id', user.id)
+        .order('display_name');
 
-  const sendMessage = () => {
-    if (newMessage.trim()) {
-      console.log("Sending message:", newMessage);
-      setNewMessage("");
-      toast({
-        title: "Message sent!",
-        description: "Your message has been delivered",
-      });
+      if (error) {
+        console.error('Error fetching profiles:', error);
+        return;
+      }
+
+      setProfiles(data || []);
+    } catch (error) {
+      console.error('Error fetching profiles:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const sendVoiceMessage = (audioBlob: Blob) => {
-    console.log("Sending voice message:", audioBlob);
-    setShowVoiceMessage(false);
-    toast({
-      title: "Voice message sent!",
-      description: "Your voice message has been delivered",
-    });
+  useEffect(() => {
+    fetchProfiles();
+  }, [user]);
+
+  const filteredProfiles = profiles.filter(profile =>
+    (profile.display_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     profile.username?.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const handleStartChat = (profile: Profile) => {
+    setSelectedUserId(profile.id);
+    setSelectedUserName(profile.display_name || profile.username || 'Unknown User');
   };
+
+  if (selectedUserId) {
+    return (
+      <MessagesList
+        otherUserId={selectedUserId}
+        otherUserName={selectedUserName}
+        onBack={() => setSelectedUserId(null)}
+      />
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="text-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+        <p className="mt-2 text-gray-600">Loading users...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[600px]">
-      {/* Chat List */}
+    <div className="space-y-6">
       <Card className="bg-white/70 backdrop-blur-sm border-purple-100 shadow-lg">
-        <CardContent className="p-0 h-full">
-          <div className="p-4 border-b border-purple-100">
-            <h3 className="font-semibold text-gray-900">Messages</h3>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageCircle className="w-5 h-5" />
+            Messages
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Search users to chat with..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
-          <div className="overflow-y-auto h-full">
-            {chats.map((chat) => (
-              <div 
-                key={chat.id}
-                onClick={() => setSelectedChat(chat)}
-                className={`p-4 border-b border-purple-50 cursor-pointer transition-colors hover:bg-purple-50 ${
-                  selectedChat?.id === chat.id ? "bg-purple-100" : ""
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <Avatar>
-                      <AvatarImage src={chat.avatar} />
-                      <AvatarFallback>{chat.name[0]}</AvatarFallback>
-                    </Avatar>
-                    {chat.online && (
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+
+          <div className="space-y-2">
+            {filteredProfiles.length === 0 ? (
+              <div className="text-center text-gray-500 py-8">
+                {searchTerm ? 'No users found matching your search.' : 'No other users found.'}
+              </div>
+            ) : (
+              filteredProfiles.map((profile) => (
+                <div
+                  key={profile.id}
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 cursor-pointer transition-colors"
+                  onClick={() => handleStartChat(profile)}
+                >
+                  <Avatar>
+                    {profile.avatar_url && <AvatarImage src={profile.avatar_url} />}
+                    <AvatarFallback>
+                      {(profile.display_name || profile.username || 'U')[0].toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">
+                      {profile.display_name || profile.username || 'Unknown User'}
+                    </p>
+                    {profile.username && profile.display_name !== profile.username && (
+                      <p className="text-sm text-gray-500">@{profile.username}</p>
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium text-gray-900 truncate">{chat.name}</p>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-500">{chat.time}</span>
-                        {chat.unread > 0 && (
-                          <Badge className="bg-purple-600 text-white text-xs px-1 py-0 min-w-[16px] h-4">
-                            {chat.unread}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-500 truncate">{chat.lastMessage}</p>
-                  </div>
+                  <Button variant="ghost" size="sm">
+                    <MessageCircle className="w-4 h-4" />
+                  </Button>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
-
-      {/* Chat Window */}
-      <div className="md:col-span-2">
-        <Card className="bg-white/70 backdrop-blur-sm border-purple-100 shadow-lg h-full">
-          <CardContent className="p-0 h-full flex flex-col">
-            {selectedChat ? (
-              <>
-                {/* Chat Header */}
-                <div className="p-4 border-b border-purple-100 flex items-center gap-3">
-                  <Avatar>
-                    <AvatarImage src={selectedChat.avatar} />
-                    <AvatarFallback>{selectedChat.name[0]}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-semibold text-gray-900">{selectedChat.name}</p>
-                    <p className="text-sm text-green-500">
-                      {selectedChat.online ? "Online" : "Last seen recently"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {messages.map((message) => (
-                    <div 
-                      key={message.id} 
-                      className={`flex ${message.sent ? "justify-end" : "justify-start"}`}
-                    >
-                      <div 
-                        className={`max-w-xs px-4 py-2 rounded-lg ${
-                          message.sent 
-                            ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white" 
-                            : "bg-gray-100 text-gray-900"
-                        }`}
-                      >
-                        <p className="text-sm">{message.text}</p>
-                        <p className={`text-xs mt-1 ${
-                          message.sent ? "text-purple-100" : "text-gray-500"
-                        }`}>
-                          {message.time}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Message Input */}
-                <div className="p-4 border-t border-purple-100 space-y-3">
-                  {showVoiceMessage && (
-                    <VoiceMessage 
-                      onSend={sendVoiceMessage}
-                      onCancel={() => setShowVoiceMessage(false)}
-                    />
-                  )}
-                  
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-purple-600"
-                      onClick={() => setShowVoiceMessage(!showVoiceMessage)}
-                    >
-                      <Mic className="w-5 h-5" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-purple-600">
-                      <Image className="w-5 h-5" />
-                    </Button>
-                    <Input 
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Type a message..." 
-                      className="flex-1 border-purple-200 focus:border-purple-400"
-                      onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                    />
-                    <Button 
-                      onClick={sendMessage}
-                      size="sm" 
-                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-gray-500">
-                <div className="text-center">
-                  <MessageCircle className="w-12 h-12 mx-auto mb-2 text-purple-300" />
-                  <p>Select a chat to start messaging</p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 };

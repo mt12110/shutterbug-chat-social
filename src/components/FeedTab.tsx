@@ -51,7 +51,7 @@ const FeedTab = ({ profile, onOpenProfile, onShowComments, onShowShare }: FeedTa
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
             <Avatar>
-              <AvatarImage src={profile?.avatar_url} />
+              {profile?.avatar_url && <AvatarImage src={profile.avatar_url} />}
               <AvatarFallback>{profile?.display_name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
             </Avatar>
             <Input 
@@ -95,7 +95,7 @@ const FeedTab = ({ profile, onOpenProfile, onShowComments, onShowShare }: FeedTa
               {/* Post Header */}
               <div className="p-4 flex items-center gap-3">
                 <Avatar className="cursor-pointer" onClick={() => onOpenProfile(post.profiles?.username || '')}>
-                  <AvatarImage src={post.profiles?.avatar_url} />
+                  {post.profiles?.avatar_url && <AvatarImage src={post.profiles.avatar_url} />}
                   <AvatarFallback>{(post.profiles?.display_name || 'U')[0].toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
@@ -119,7 +119,7 @@ const FeedTab = ({ profile, onOpenProfile, onShowComments, onShowShare }: FeedTa
                 </div>
               </div>
 
-              {/* Post Media */}
+              {/* Post Media - Only show if image or video exists */}
               {(post.image_url || post.video_url) && (
                 <div className="relative">
                   {post.image_url ? (

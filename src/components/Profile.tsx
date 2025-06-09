@@ -95,7 +95,7 @@ const Profile = ({ userId, onBack }: ProfileProps) => {
             <div className="flex items-start gap-6">
               <div className="relative">
                 <Avatar className="w-24 h-24">
-                  <AvatarImage src={user.avatar} />
+                  {user.avatar && <AvatarImage src={user.avatar} />}
                   <AvatarFallback>{user.displayName[0]}</AvatarFallback>
                 </Avatar>
                 {user.isOnline && (
