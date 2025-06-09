@@ -88,11 +88,11 @@ export const useMessages = (otherUserId?: string) => {
         .select()
         .single();
 
-      if (error) {
+      if (error || !data) {
         console.error('Send message error:', error);
         toast({
           title: "Error sending message",
-          description: error.message,
+          description: error?.message || 'Failed to send message',
           variant: "destructive"
         });
         return { error };
