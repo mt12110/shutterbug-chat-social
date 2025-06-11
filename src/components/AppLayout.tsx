@@ -79,7 +79,7 @@ const AppLayout = () => {
           />
         )}
 
-        {activeTab === "explore" && <Explore />}
+        {activeTab === "explore" && <Explore onOpenProfile={openProfile} />}
 
         {activeTab === "chat" && <ChatTab />}
       </div>

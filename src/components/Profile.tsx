@@ -164,6 +164,7 @@ const Profile = ({ userId, onBack }: ProfileProps) => {
             </Button>
             <h1 className="text-xl font-bold text-foreground">{userProfile.username}</h1>
           </div>
+          {/* Only show settings gear for own profile */}
           {user?.id === userProfile.id && (
             <Button variant="ghost" size="sm">
               <Settings className="w-4 h-4" />

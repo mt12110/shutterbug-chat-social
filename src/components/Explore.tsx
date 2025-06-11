@@ -21,7 +21,11 @@ interface Profile {
   posts_count?: number;
 }
 
-const Explore = () => {
+interface ExploreProps {
+  onOpenProfile?: (username: string) => void;
+}
+
+const Explore = ({ onOpenProfile }: ExploreProps) => {
   const { user } = useAuth();
   const { followUser, unfollowUser, isFollowing } = useFollows();
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -69,6 +73,12 @@ const Explore = () => {
     }
   };
 
+  const handleProfileClick = (profile: Profile) => {
+    if (onOpenProfile && profile.username) {
+      onOpenProfile(profile.username);
+    }
+  };
+
   if (loading) {
     return (
       <div className="text-center py-8">
@@ -108,14 +118,22 @@ const Explore = () => {
                 <Card key={profile.id} className="bg-white/50 border-purple-100">
                   <CardContent className="p-4">
                     <div className="flex flex-col items-center text-center space-y-3">
-                      <Avatar className="w-16 h-16">
-                        {profile.avatar_url && <AvatarImage src={profile.avatar_url} />}
-                        <AvatarFallback className="text-lg">
-                          {(profile.display_name || profile.username || 'U')[0].toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div 
+                        className="cursor-pointer" 
+                        onClick={() => handleProfileClick(profile)}
+                      >
+                        <Avatar className="w-16 h-16">
+                          {profile.avatar_url && <AvatarImage src={profile.avatar_url} />}
+                          <AvatarFallback className="text-lg">
+                            {(profile.display_name || profile.username || 'U')[0].toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
                       
-                      <div>
+                      <div 
+                        className="cursor-pointer" 
+                        onClick={() => handleProfileClick(profile)}
+                      >
                         <h3 className="font-semibold text-gray-900">
                           {profile.display_name || profile.username || 'Unknown User'}
                         </h3>
