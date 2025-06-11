@@ -1,14 +1,15 @@
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, Camera, Heart, MessageCircle, Send, Settings, Plus, Image } from "lucide-react";
+import { ArrowLeft, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useLikes } from "@/hooks/useLikes";
 import { useFollows } from "@/hooks/useFollows";
+import ProfileHeader from "./ProfileHeader";
+import ProfileNavigation from "./ProfileNavigation";
+import ProfilePostsGrid from "./ProfilePostsGrid";
+import PostDetailView from "./PostDetailView";
 
 interface ProfileProps {
   userId: string;
@@ -42,7 +43,7 @@ interface UserPost {
 const Profile = ({ userId, onBack }: ProfileProps) => {
   const { user } = useAuth();
   const { getLikeCount } = useLikes();
-  const { following, followUser, unfollowUser, isFollowing } = useFollows();
+  const { followUser, unfollowUser, isFollowing } = useFollows();
   const [activeTab, setActiveTab] = useState("posts");
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userPosts, setUserPosts] = useState<UserPost[]>([]);
@@ -90,7 +91,7 @@ const Profile = ({ userId, onBack }: ProfileProps) => {
     fetchUserProfile();
   }, [userId]);
 
-  const handleFollow = async () => {
+  const handleFollowToggle = async () => {
     if (!userProfile) return;
     
     if (userIsFollowing) {
@@ -118,67 +119,12 @@ const Profile = ({ userId, onBack }: ProfileProps) => {
 
   if (selectedPost) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
-        {/* Header */}
-        <header className="bg-background/80 backdrop-blur-md border-b border-border sticky top-0 z-50">
-          <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" onClick={() => setSelectedPost(null)}>
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-              <h1 className="text-xl font-bold text-foreground">Post</h1>
-            </div>
-          </div>
-        </header>
-
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <Card className="bg-card/70 backdrop-blur-sm border-border shadow-lg overflow-hidden">
-            <CardContent className="p-0">
-              {/* Post Header */}
-              <div className="p-4 flex items-center gap-3">
-                <Avatar>
-                  {userProfile.avatar_url && <AvatarImage src={userProfile.avatar_url} />}
-                  <AvatarFallback>{(userProfile.display_name || userProfile.username || 'U')[0].toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <p className="font-semibold text-foreground">
-                    {userProfile.display_name || userProfile.username || 'Unknown User'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{selectedPost.location || 'Unknown location'} • {new Date(selectedPost.created_at).toLocaleDateString()}</p>
-                </div>
-              </div>
-
-              {/* Post Media */}
-              {(selectedPost.image_url || selectedPost.video_url) && (
-                <div className="relative">
-                  {selectedPost.image_url ? (
-                    <img src={selectedPost.image_url} alt="Post" className="w-full h-auto object-cover" />
-                  ) : selectedPost.video_url ? (
-                    <video src={selectedPost.video_url} className="w-full h-auto object-cover" controls />
-                  ) : null}
-                </div>
-              )}
-
-              {/* Post Actions */}
-              <div className="p-4">
-                <div className="flex items-center gap-4 mb-2">
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <Heart className="w-5 h-5" />
-                    <span>{getLikeCount(selectedPost.id)}</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <MessageCircle className="w-5 h-5" />
-                    <span>{selectedPost.comments_count || 0}</span>
-                  </div>
-                </div>
-                {selectedPost.caption && (
-                  <p className="text-foreground">{selectedPost.caption}</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      <PostDetailView
+        post={selectedPost}
+        userProfile={userProfile}
+        getLikeCount={getLikeCount}
+        onBack={() => setSelectedPost(null)}
+      />
     );
   }
 
@@ -202,124 +148,24 @@ const Profile = ({ userId, onBack }: ProfileProps) => {
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-6">
-        {/* Profile Info */}
-        <Card className="bg-card/70 backdrop-blur-sm border-border shadow-lg mb-6">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-6">
-              <div className="relative">
-                <Avatar className="w-24 h-24">
-                  {userProfile.avatar_url && <AvatarImage src={userProfile.avatar_url} />}
-                  <AvatarFallback>{(userProfile.display_name || userProfile.username || 'U')[0].toUpperCase()}</AvatarFallback>
-                </Avatar>
-              </div>
+        <ProfileHeader
+          userProfile={userProfile}
+          postsCount={userPosts.length}
+          isOwnProfile={user?.id === userProfile.id}
+          isFollowing={userIsFollowing}
+          onFollowToggle={handleFollowToggle}
+        />
 
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h2 className="text-2xl font-bold text-foreground">{userProfile.display_name || userProfile.username}</h2>
-                </div>
-                {userProfile.bio && <p className="text-muted-foreground mb-4">{userProfile.bio}</p>}
-                
-                <div className="flex gap-6 mb-4">
-                  <div className="text-center">
-                    <p className="font-bold text-foreground">{userPosts.length}</p>
-                    <p className="text-sm text-muted-foreground">Posts</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-bold text-foreground">{userProfile.followers_count || 0}</p>
-                    <p className="text-sm text-muted-foreground">Followers</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-bold text-foreground">{userProfile.following_count || 0}</p>
-                    <p className="text-sm text-muted-foreground">Following</p>
-                  </div>
-                </div>
+        <ProfileNavigation
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
-                {user?.id !== userProfile.id && (
-                  <div className="flex gap-3">
-                    <Button className="bg-primary hover:bg-primary/90">
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      Message
-                    </Button>
-                    <Button 
-                      variant={userIsFollowing ? "outline" : "default"}
-                      className={userIsFollowing ? "border-border" : "bg-primary hover:bg-primary/90"}
-                      onClick={handleFollow}
-                    >
-                      {userIsFollowing ? 'Following' : 'Follow'}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Navigation Tabs */}
-        <div className="flex border-b border-border mb-6">
-          <Button 
-            variant="ghost" 
-            className={`flex-1 ${activeTab === 'posts' ? 'border-b-2 border-primary text-primary' : ''}`}
-            onClick={() => setActiveTab('posts')}
-          >
-            Posts
-          </Button>
-          <Button 
-            variant="ghost" 
-            className={`flex-1 ${activeTab === 'tagged' ? 'border-b-2 border-primary text-primary' : ''}`}
-            onClick={() => setActiveTab('tagged')}
-          >
-            Tagged
-          </Button>
-        </div>
-
-        {/* Posts Grid */}
-        {userPosts.length === 0 ? (
-          <div className="text-center text-muted-foreground py-8">
-            <Image className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
-            <p className="text-lg font-medium mb-2">No posts yet</p>
-            <p className="text-sm">This user hasn't shared anything yet.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-2">
-            {userPosts.map((post) => (
-              <div 
-                key={post.id} 
-                className="relative aspect-square group cursor-pointer"
-                onClick={() => setSelectedPost(post)}
-              >
-                {post.image_url ? (
-                  <img 
-                    src={post.image_url} 
-                    alt="Post" 
-                    className="w-full h-full object-cover rounded-lg"
-                  />
-                ) : post.video_url ? (
-                  <video 
-                    src={post.video_url} 
-                    className="w-full h-full object-cover rounded-lg"
-                    muted
-                  />
-                ) : (
-                  <div className="w-full h-full bg-muted rounded-lg flex items-center justify-center">
-                    <Image className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                  <div className="flex items-center gap-4 text-white">
-                    <div className="flex items-center gap-1">
-                      <Heart className="w-4 h-4" />
-                      <span className="text-sm">{getLikeCount(post.id)}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <MessageCircle className="w-4 h-4" />
-                      <span className="text-sm">{post.comments_count || 0}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <ProfilePostsGrid
+          posts={userPosts}
+          getLikeCount={getLikeCount}
+          onPostClick={setSelectedPost}
+        />
       </div>
     </div>
   );
