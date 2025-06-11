@@ -38,6 +38,11 @@ interface UserPost {
   created_at: string;
   likes_count?: number;
   comments_count?: number;
+  profiles?: {
+    username?: string;
+    display_name?: string;
+    avatar_url?: string;
+  };
 }
 
 const Profile = ({ userId, onBack }: ProfileProps) => {
@@ -67,7 +72,7 @@ const Profile = ({ userId, onBack }: ProfileProps) => {
 
       setUserProfile(profileData);
 
-      // Fetch user's posts
+      // Fetch user's posts with profile data
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select('*')
@@ -79,7 +84,17 @@ const Profile = ({ userId, onBack }: ProfileProps) => {
         return;
       }
 
-      setUserPosts(postsData || []);
+      // Add profile data to each post
+      const postsWithProfiles = postsData?.map(post => ({
+        ...post,
+        profiles: {
+          username: profileData.username,
+          display_name: profileData.display_name,
+          avatar_url: profileData.avatar_url
+        }
+      })) || [];
+
+      setUserPosts(postsWithProfiles);
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
@@ -99,6 +114,16 @@ const Profile = ({ userId, onBack }: ProfileProps) => {
     } else {
       await followUser(userProfile.id);
     }
+  };
+
+  const handleShowComments = (postId: string) => {
+    console.log('Show comments for post:', postId);
+    // TODO: Implement comments functionality
+  };
+
+  const handleShowShare = (postId: string) => {
+    console.log('Show share for post:', postId);
+    // TODO: Implement share functionality
   };
 
   if (loading) {
@@ -121,9 +146,9 @@ const Profile = ({ userId, onBack }: ProfileProps) => {
     return (
       <PostDetailView
         post={selectedPost}
-        userProfile={userProfile}
-        getLikeCount={getLikeCount}
-        onBack={() => setSelectedPost(null)}
+        onClose={() => setSelectedPost(null)}
+        onShowComments={handleShowComments}
+        onShowShare={handleShowShare}
       />
     );
   }
