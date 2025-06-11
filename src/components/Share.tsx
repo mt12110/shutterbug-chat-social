@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Send, X, Copy, Link } from "lucide-react";
+import { Send, X, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -64,26 +64,15 @@ const Share = ({ postId, onClose }: ShareProps) => {
         <CardContent className="flex-1 overflow-y-auto p-0">
           {/* Quick Actions */}
           <div className="p-4 border-b">
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={copyLink}
-                className="flex-1"
-              >
-                <Copy className="w-4 h-4 mr-2" />
-                Copy Link
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex-1"
-                onClick={copyLink}
-              >
-                <Link className="w-4 h-4 mr-2" />
-                Share Link
-              </Button>
-            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={copyLink}
+              className="w-full"
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Copy Link
+            </Button>
           </div>
 
           {/* Message Input */}
@@ -92,7 +81,7 @@ const Share = ({ postId, onClose }: ShareProps) => {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Add a message (optional)..." 
-              className="border-purple-200 focus:border-purple-400"
+              className="border-blue-200 focus:border-blue-400"
             />
           </div>
 
@@ -110,7 +99,7 @@ const Share = ({ postId, onClose }: ShareProps) => {
                     key={follow.id} 
                     className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
                       selectedFriends.includes(follow.following_id) 
-                        ? 'bg-purple-100 border border-purple-200' 
+                        ? 'bg-blue-100 border border-blue-200' 
                         : 'hover:bg-gray-50'
                     }`}
                     onClick={() => toggleFriend(follow.following_id)}
@@ -133,7 +122,7 @@ const Share = ({ postId, onClose }: ShareProps) => {
                     </div>
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                       selectedFriends.includes(follow.following_id)
-                        ? 'bg-purple-600 border-purple-600' 
+                        ? 'bg-blue-600 border-blue-600' 
                         : 'border-gray-300'
                     }`}>
                       {selectedFriends.includes(follow.following_id) && (
@@ -150,7 +139,7 @@ const Share = ({ postId, onClose }: ShareProps) => {
         <div className="p-4 border-t">
           <Button 
             onClick={sharePost}
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
             disabled={selectedFriends.length === 0}
           >
             <Send className="w-4 h-4 mr-2" />

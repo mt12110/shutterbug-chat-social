@@ -38,9 +38,9 @@ const AppHeader = ({ activeTab, setActiveTab, profile, onShowProfileEdit }: AppH
   };
 
   return (
-    <header className="bg-white/80 backdrop-blur-md border-b border-purple-100 sticky top-0 z-50">
+    <header className="bg-white/80 backdrop-blur-md border-b border-blue-100 sticky top-0 z-50">
       <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
           PulseChat
         </h1>
         <div className="flex items-center gap-2">
@@ -48,7 +48,7 @@ const AppHeader = ({ activeTab, setActiveTab, profile, onShowProfileEdit }: AppH
             variant={activeTab === "feed" ? "default" : "ghost"}
             size="sm"
             onClick={() => setActiveTab("feed")}
-            className={activeTab === "feed" ? "bg-gradient-to-r from-purple-600 to-pink-600" : ""}
+            className={activeTab === "feed" ? "bg-gradient-to-r from-blue-600 to-teal-600" : ""}
           >
             <Image className="w-4 h-4 mr-1" />
             Feed
@@ -57,7 +57,7 @@ const AppHeader = ({ activeTab, setActiveTab, profile, onShowProfileEdit }: AppH
             variant={activeTab === "explore" ? "default" : "ghost"}
             size="sm"
             onClick={() => setActiveTab("explore")}
-            className={activeTab === "explore" ? "bg-gradient-to-r from-purple-600 to-pink-600" : ""}
+            className={activeTab === "explore" ? "bg-gradient-to-r from-blue-600 to-teal-600" : ""}
           >
             <Compass className="w-4 h-4 mr-1" />
             Explore
@@ -66,10 +66,10 @@ const AppHeader = ({ activeTab, setActiveTab, profile, onShowProfileEdit }: AppH
             variant={activeTab === "chat" ? "default" : "ghost"}
             size="sm"
             onClick={() => setActiveTab("chat")}
-            className={activeTab === "chat" ? "bg-gradient-to-r from-purple-600 to-pink-600" : ""}
+            className={activeTab === "chat" ? "bg-gradient-to-r from-blue-600 to-teal-600" : ""}
           >
             <MessageCircle className="w-4 h-4 mr-1" />
-            Chat
+            Messages
           </Button>
           
           <div className="flex items-center gap-2 ml-4">
