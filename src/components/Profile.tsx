@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, Camera, Heart, MessageCircle, Send, Settings, Plus } from "lucide-react";
+import { ArrowLeft, Camera, Heart, MessageCircle, Send, Settings, Plus, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,14 +42,14 @@ interface UserPost {
 const Profile = ({ userId, onBack }: ProfileProps) => {
   const { user } = useAuth();
   const { getLikeCount } = useLikes();
-  const { following, toggleFollow } = useFollows();
+  const { following, followUser, unfollowUser, isFollowing } = useFollows();
   const [activeTab, setActiveTab] = useState("posts");
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userPosts, setUserPosts] = useState<UserPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState<UserPost | null>(null);
 
-  const isFollowing = following.some(follow => follow.following?.username === userId);
+  const userIsFollowing = userProfile ? isFollowing(userProfile.id) : false;
 
   const fetchUserProfile = async () => {
     try {
@@ -92,42 +92,47 @@ const Profile = ({ userId, onBack }: ProfileProps) => {
 
   const handleFollow = async () => {
     if (!userProfile) return;
-    await toggleFollow(userProfile.id);
+    
+    if (userIsFollowing) {
+      await unfollowUser(userProfile.id);
+    } else {
+      await followUser(userProfile.id);
+    }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-cyan-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   if (!userProfile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-cyan-50 flex items-center justify-center">
-        <p className="text-gray-500">User not found</p>
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 flex items-center justify-center">
+        <p className="text-muted-foreground">User not found</p>
       </div>
     );
   }
 
   if (selectedPost) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-cyan-50">
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
         {/* Header */}
-        <header className="bg-white/80 backdrop-blur-md border-b border-blue-100 sticky top-0 z-50">
+        <header className="bg-background/80 backdrop-blur-md border-b border-border sticky top-0 z-50">
           <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Button variant="ghost" size="sm" onClick={() => setSelectedPost(null)}>
                 <ArrowLeft className="w-4 h-4" />
               </Button>
-              <h1 className="text-xl font-bold text-gray-900">Post</h1>
+              <h1 className="text-xl font-bold text-foreground">Post</h1>
             </div>
           </div>
         </header>
 
         <div className="max-w-4xl mx-auto px-4 py-6">
-          <Card className="bg-white/70 backdrop-blur-sm border-blue-100 shadow-lg overflow-hidden">
+          <Card className="bg-card/70 backdrop-blur-sm border-border shadow-lg overflow-hidden">
             <CardContent className="p-0">
               {/* Post Header */}
               <div className="p-4 flex items-center gap-3">
@@ -136,10 +141,10 @@ const Profile = ({ userId, onBack }: ProfileProps) => {
                   <AvatarFallback>{(userProfile.display_name || userProfile.username || 'U')[0].toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <p className="font-semibold text-gray-900">
+                  <p className="font-semibold text-foreground">
                     {userProfile.display_name || userProfile.username || 'Unknown User'}
                   </p>
-                  <p className="text-sm text-gray-500">{selectedPost.location || 'Unknown location'} • {new Date(selectedPost.created_at).toLocaleDateString()}</p>
+                  <p className="text-sm text-muted-foreground">{selectedPost.location || 'Unknown location'} • {new Date(selectedPost.created_at).toLocaleDateString()}</p>
                 </div>
               </div>
 
@@ -157,17 +162,17 @@ const Profile = ({ userId, onBack }: ProfileProps) => {
               {/* Post Actions */}
               <div className="p-4">
                 <div className="flex items-center gap-4 mb-2">
-                  <div className="flex items-center gap-1 text-gray-500">
+                  <div className="flex items-center gap-1 text-muted-foreground">
                     <Heart className="w-5 h-5" />
                     <span>{getLikeCount(selectedPost.id)}</span>
                   </div>
-                  <div className="flex items-center gap-1 text-gray-500">
+                  <div className="flex items-center gap-1 text-muted-foreground">
                     <MessageCircle className="w-5 h-5" />
                     <span>{selectedPost.comments_count || 0}</span>
                   </div>
                 </div>
                 {selectedPost.caption && (
-                  <p className="text-gray-800">{selectedPost.caption}</p>
+                  <p className="text-foreground">{selectedPost.caption}</p>
                 )}
               </div>
             </CardContent>
@@ -178,15 +183,15 @@ const Profile = ({ userId, onBack }: ProfileProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-cyan-50">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-blue-100 sticky top-0 z-50">
+      <header className="bg-background/80 backdrop-blur-md border-b border-border sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={onBack}>
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <h1 className="text-xl font-bold text-gray-900">{userProfile.username}</h1>
+            <h1 className="text-xl font-bold text-foreground">{userProfile.username}</h1>
           </div>
           {user?.id === userProfile.id && (
             <Button variant="ghost" size="sm">
@@ -198,7 +203,7 @@ const Profile = ({ userId, onBack }: ProfileProps) => {
 
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Profile Info */}
-        <Card className="bg-white/70 backdrop-blur-sm border-blue-100 shadow-lg mb-6">
+        <Card className="bg-card/70 backdrop-blur-sm border-border shadow-lg mb-6">
           <CardContent className="p-6">
             <div className="flex items-start gap-6">
               <div className="relative">
@@ -210,37 +215,37 @@ const Profile = ({ userId, onBack }: ProfileProps) => {
 
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <h2 className="text-2xl font-bold text-gray-900">{userProfile.display_name || userProfile.username}</h2>
+                  <h2 className="text-2xl font-bold text-foreground">{userProfile.display_name || userProfile.username}</h2>
                 </div>
-                {userProfile.bio && <p className="text-gray-600 mb-4">{userProfile.bio}</p>}
+                {userProfile.bio && <p className="text-muted-foreground mb-4">{userProfile.bio}</p>}
                 
                 <div className="flex gap-6 mb-4">
                   <div className="text-center">
-                    <p className="font-bold text-gray-900">{userPosts.length}</p>
-                    <p className="text-sm text-gray-500">Posts</p>
+                    <p className="font-bold text-foreground">{userPosts.length}</p>
+                    <p className="text-sm text-muted-foreground">Posts</p>
                   </div>
                   <div className="text-center">
-                    <p className="font-bold text-gray-900">{userProfile.followers_count || 0}</p>
-                    <p className="text-sm text-gray-500">Followers</p>
+                    <p className="font-bold text-foreground">{userProfile.followers_count || 0}</p>
+                    <p className="text-sm text-muted-foreground">Followers</p>
                   </div>
                   <div className="text-center">
-                    <p className="font-bold text-gray-900">{userProfile.following_count || 0}</p>
-                    <p className="text-sm text-gray-500">Following</p>
+                    <p className="font-bold text-foreground">{userProfile.following_count || 0}</p>
+                    <p className="text-sm text-muted-foreground">Following</p>
                   </div>
                 </div>
 
                 {user?.id !== userProfile.id && (
                   <div className="flex gap-3">
-                    <Button className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700">
+                    <Button className="bg-primary hover:bg-primary/90">
                       <MessageCircle className="w-4 h-4 mr-2" />
                       Message
                     </Button>
                     <Button 
-                      variant={isFollowing ? "outline" : "default"}
-                      className={isFollowing ? "border-blue-200" : "bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700"}
+                      variant={userIsFollowing ? "outline" : "default"}
+                      className={userIsFollowing ? "border-border" : "bg-primary hover:bg-primary/90"}
                       onClick={handleFollow}
                     >
-                      {isFollowing ? 'Following' : 'Follow'}
+                      {userIsFollowing ? 'Following' : 'Follow'}
                     </Button>
                   </div>
                 )}
@@ -250,17 +255,17 @@ const Profile = ({ userId, onBack }: ProfileProps) => {
         </Card>
 
         {/* Navigation Tabs */}
-        <div className="flex border-b border-blue-100 mb-6">
+        <div className="flex border-b border-border mb-6">
           <Button 
             variant="ghost" 
-            className={`flex-1 ${activeTab === 'posts' ? 'border-b-2 border-blue-600 text-blue-600' : ''}`}
+            className={`flex-1 ${activeTab === 'posts' ? 'border-b-2 border-primary text-primary' : ''}`}
             onClick={() => setActiveTab('posts')}
           >
             Posts
           </Button>
           <Button 
             variant="ghost" 
-            className={`flex-1 ${activeTab === 'tagged' ? 'border-b-2 border-blue-600 text-blue-600' : ''}`}
+            className={`flex-1 ${activeTab === 'tagged' ? 'border-b-2 border-primary text-primary' : ''}`}
             onClick={() => setActiveTab('tagged')}
           >
             Tagged
@@ -269,8 +274,8 @@ const Profile = ({ userId, onBack }: ProfileProps) => {
 
         {/* Posts Grid */}
         {userPosts.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">
-            <Image className="w-12 h-12 mx-auto mb-4 text-blue-300" />
+          <div className="text-center text-muted-foreground py-8">
+            <Image className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
             <p className="text-lg font-medium mb-2">No posts yet</p>
             <p className="text-sm">This user hasn't shared anything yet.</p>
           </div>
@@ -295,8 +300,8 @@ const Profile = ({ userId, onBack }: ProfileProps) => {
                     muted
                   />
                 ) : (
-                  <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center">
-                    <Image className="w-8 h-8 text-gray-400" />
+                  <div className="w-full h-full bg-muted rounded-lg flex items-center justify-center">
+                    <Image className="w-8 h-8 text-muted-foreground" />
                   </div>
                 )}
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
