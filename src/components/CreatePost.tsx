@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { X, MapPin, Clock, Zap } from 'lucide-react';
+import { X, MapPin, Clock, Zap, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,9 +12,17 @@ import { usePosts } from '@/hooks/usePosts';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import FileUpload from './FileUpload';
+import UserTagger from './UserTagger';
 
 interface CreatePostProps {
   onClose: () => void;
+}
+
+interface TaggedUser {
+  id: string;
+  username?: string;
+  display_name?: string;
+  avatar_url?: string;
 }
 
 const CreatePost = ({ onClose }: CreatePostProps) => {
@@ -27,6 +35,7 @@ const CreatePost = ({ onClose }: CreatePostProps) => {
   const [isDisappearing, setIsDisappearing] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [taggedUsers, setTaggedUsers] = useState<TaggedUser[]>([]);
 
   const uploadFile = async (file: File): Promise<string | null> => {
     if (!user) return null;
@@ -86,8 +95,15 @@ const CreatePost = ({ onClose }: CreatePostProps) => {
         }
       }
 
+      // Add tagged users to caption with @ mentions
+      let finalCaption = caption.trim();
+      if (taggedUsers.length > 0 && finalCaption) {
+        const mentions = taggedUsers.map(user => `@${user.username || user.display_name}`).join(' ');
+        finalCaption = `${finalCaption}\n\n${mentions}`;
+      }
+
       const result = await createPost({
-        caption: caption.trim() || undefined,
+        caption: finalCaption || undefined,
         image_url: image_url || undefined,
         video_url: video_url || undefined,
         location: location.trim() || undefined,
@@ -110,9 +126,9 @@ const CreatePost = ({ onClose }: CreatePostProps) => {
   };
 
   return (
-    <Card className="bg-white/90 backdrop-blur-sm border-purple-100 shadow-xl">
+    <Card className="bg-card/90 backdrop-blur-sm border-border shadow-xl">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-lg font-semibold text-gray-900">Create Post</CardTitle>
+        <CardTitle className="text-lg font-semibold text-foreground">Create Post</CardTitle>
         <Button variant="ghost" size="sm" onClick={onClose}>
           <X className="w-4 h-4" />
         </Button>
@@ -122,7 +138,7 @@ const CreatePost = ({ onClose }: CreatePostProps) => {
           placeholder="What's on your mind?"
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
-          className="min-h-[100px] border-purple-200 focus:border-purple-400"
+          className="min-h-[100px] border-border focus:border-primary"
         />
 
         <FileUpload
@@ -132,12 +148,24 @@ const CreatePost = ({ onClose }: CreatePostProps) => {
         />
 
         <div className="flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-gray-400" />
+          <MapPin className="w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Add location..."
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            className="border-purple-200 focus:border-purple-400"
+            className="border-border focus:border-primary"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-muted-foreground" />
+            <Label className="text-sm font-medium">Tag people</Label>
+          </div>
+          <UserTagger
+            selectedUsers={taggedUsers}
+            onUsersChange={setTaggedUsers}
+            placeholder="Search for people to tag..."
           />
         </div>
 
@@ -171,7 +199,7 @@ const CreatePost = ({ onClose }: CreatePostProps) => {
           <Button 
             onClick={handleSubmit}
             disabled={uploading}
-            className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+            className="flex-1 bg-primary hover:bg-primary/90"
           >
             {uploading ? 'Posting...' : 'Share Post'}
           </Button>
